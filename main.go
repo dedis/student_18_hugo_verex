@@ -4,6 +4,8 @@ import (
 	"log"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/core/vm/runtime"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -86,7 +88,37 @@ func main() {
 		EVMInterpreter: "",
 	}
 
+	flags := &runtime.Config{
+		ChainConfig: chainconfig,
+		Difficulty:  big.NewInt(1),
+		Origin:      common.HexToAddress("0xE420b7546D387039dDaD2741a688CbEBD2578363"),
+		Coinbase:    common.HexToAddress("0xE420b7546D387039dDaD2741a688CbEBD2578363"),
+		BlockNumber: big.NewInt(1),
+		Time:        big.NewInt(1),
+		GasLimit:    1,
+		GasPrice:    big.NewInt(1),
+		Value:       big.NewInt(1),
+		Debug:       true,
+		EVMConfig:   *vmconfig,
+
+		State: sdb,
+		//GetHashFn: func(n uint64) common.Hash,
+		//GetHashFn: nil,
+
+	}
+
 	bvm := vm.NewEVM(ctx, sdb, chainconfig, *vmconfig)
+
+	//func NewEnv(cfg *Config) *vm.EVM
+
+	bvm1 := runtime.NewEnv(flags)
+
+	//func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, error)
+	//runtime.Call()
+	log.Println("Hello")
 	log.Println(bvm)
+	log.Println("Hello")
+	log.Println(bvm1)
+	log.Println("Hello")
 
 }
