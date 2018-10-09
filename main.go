@@ -117,7 +117,7 @@ func main() {
 	bvm := vm.NewEVM(ctx, sdb, chainconfig, *vmconfig)
 
 	//func NewEnv(cfg *Config) *vm.EVM
-	//bvm1 := runtime.NewEnv(flags)
+	bvm1 := runtime.NewEnv(flags)
 
 	//func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, error)
 
@@ -147,4 +147,33 @@ func main() {
 	}
 	fmt.Println(create_ret)
 	fmt.Println(contract_addr)
+
+	//func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error)
+	contract := &vm.Contract{
+		CallerAddress: common.HexToAddress("0xE420b7546D387039dDaD2741a688CbEBD2578363"),
+		Code:          common.Hex2Bytes(minimum_token),
+		CodeHash:      common.HexToHash("0x0000000000000000000000000000000000000000"),
+		//CodeAddr:      &(common.HexToAddress("0xE420b7546D387039dDaD2741a688CbEBD2578363")),
+		Input: nil,
+		Gas:   1000000,
+	}
+	fmt.Println("Contract")
+	fmt.Println(contract)
+
+	/*accountRef := &vm.AccountRef{} // s{common.HexToAddress(public_key)}
+	ret, addrContract, _, err := bvm.Create(accountRef, common.Hex2Bytes(minimum_token), 100000000, big.NewInt(0))*/
+	//func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter
+
+	//fmt.Println(ret)
+	//fmt.Println(addrContract)
+
+	bvmInterpreter := vm.NewEVMInterpreter(bvm, *vmconfig)
+	fmt.Println(bvmInterpreter.CanRun(common.Hex2Bytes(minimum_token)))
+
+	bvm1Interpreter := vm.NewEVMInterpreter(bvm1, *vmconfig)
+	fmt.Println(bvm1Interpreter.CanRun(common.Hex2Bytes(minimum_token)))
+
+	//func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error)
+	//ret_run, err := bvmInterpreter.Run(contract, nil, false)
+	//print(ret_run)
 }
