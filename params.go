@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"math/big"
 
@@ -72,6 +73,7 @@ func getDB() (*state.StateDB, error) {
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
+	fmt.Println("DB setup")
 	return sdb, err
 }
 
@@ -97,3 +99,20 @@ func getConfig() *runtime.Config {
 	}
 	return config
 }
+
+/*
+	fmt.Println("===== Through runtime =====")
+	fmt.Println("Creation of contract")
+	create_ret, contract_addr, _, err := runtime.Create(common.Hex2Bytes(minimum_token), getConfig())
+	if err != nil {
+		fmt.Println("Contract deployment unsuccessful")
+		fmt.Println(err)
+	} else {
+		fmt.Println("Successful contract deployment")
+	}
+
+	fmt.Println("Return of contract", create_ret)
+	fmt.Println("Address of contract", contract_addr.Hex())
+
+	fmt.Println("===== End runtime =====")
+*/
