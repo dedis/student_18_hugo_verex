@@ -3,8 +3,10 @@ pragma solidity ^0.4.19;
 
 contract simple {
 
-  function returnAddress() public pure returns (string) {
-    return ("hi");
+
+
+  function returnArg(string arg) public pure returns (string) {
+    return (arg);
   }
 
   function returnNumber() public pure returns (uint){

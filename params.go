@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"math/big"
+	"os/exec"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -13,6 +14,17 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
 )
+
+func compileContract() {
+	fmt.Println("compiling contract")
+	cmd := exec.Command("solcjs", "simple.sol", "--abi")
+	if err := cmd.Start(); err != nil {
+		fmt.Println("problem in compiling")
+		log.Fatal(err)
+	} else {
+		fmt.Println("Compilation successful")
+	}
+}
 
 //returns abi and bytecode
 func getSC(path string, name_of_contract string) (string, string) {
@@ -34,6 +46,11 @@ func getSC(path string, name_of_contract string) (string, string) {
 func getKeys() (string, string) {
 	private_key := "d07fa6ac3deb2a186b2a6381c9012d595d5c3d4fefb4dbb2856d00485e9ed1af"
 	public_key := "0xE420b7546D387039dDaD2741a688CbEBD2578363"
+	return public_key, private_key
+}
+func getKeys1() (string, string) {
+	private_key := "2d456877faf65f60ec24d5a55a9a4c4aa6580ea7313c6733cd3afe83888bef6a"
+	public_key := "0xe745E7ceA88A02a1Fabd4aE591371eF50BFDc099"
 	return public_key, private_key
 }
 
