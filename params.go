@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"math/big"
 
@@ -73,7 +72,6 @@ func getDB() (*state.StateDB, error) {
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
-	fmt.Println("DB setup")
 	return sdb, err
 }
 
