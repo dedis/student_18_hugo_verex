@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
 	"log"
 	"math/big"
 
@@ -11,6 +13,23 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
 )
+
+//returns abi and bytecode
+func getSC(path string, name_of_contract string) (string, string) {
+	abi, err := ioutil.ReadFile(path + name_of_contract + "_sol_" + name_of_contract + ".abi")
+	if err != nil {
+		fmt.Println("Problem generating contract ABI")
+	} else {
+		fmt.Println("ABI generated")
+	}
+	bin, err := ioutil.ReadFile(path + name_of_contract + "_sol_" + name_of_contract + ".bin")
+	if err != nil {
+		fmt.Println("Problem generating contract BIN")
+	} else {
+		fmt.Println("BIN generated")
+	}
+	return string(abi), string(bin)
+}
 
 func getKeys() (string, string) {
 	private_key := "d07fa6ac3deb2a186b2a6381c9012d595d5c3d4fefb4dbb2856d00485e9ed1af"

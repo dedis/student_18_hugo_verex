@@ -2,16 +2,13 @@ pragma solidity ^0.4.19;
 
 
 contract simple {
-  string name;
 
-
-  function returnAddress(string _param) public view returns (string) {
-    name = _param;
-    return (name);
+  function returnAddress() public pure returns (string) {
+    return ("hi");
   }
 
   function returnNumber() public pure returns (uint){
-    return 4098;
+    return 4096;
   }
 
 }
