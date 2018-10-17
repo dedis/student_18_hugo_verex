@@ -5,11 +5,16 @@ contract ModifiedToken {
     mapping (address => uint256) public balanceOf;
 
     /* Initializes contract with initial supply tokens to the creator of the contract */
-    constructor(
+    function ModifiedToken(
         uint256 initialSupply,
         address toGiveTo
         ) public {
         balanceOf[toGiveTo] = initialSupply;              // Give the creator all initial tokens
+    }
+
+    function send(address _to, uint amount) public returns (bool){
+      balanceOf[_to] = amount;
+      return true;
     }
 
     /* Send coins */

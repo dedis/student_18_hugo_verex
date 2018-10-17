@@ -27,13 +27,13 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	amount := 10000
-	constructor, err := abi.Pack("", amount, A_public_key)
+
+	send, err := abi.Pack("send", common.HexToAddress(A_public_key), big.NewInt(1))
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	transfer_token, err := abi.Pack("transfer", A_public_key, 1)
+	get, err := abi.Pack("getBalance", common.HexToAddress(A_public_key))
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -72,19 +72,20 @@ func main() {
 		fmt.Println("Problem setting up vms")
 	}
 
-	fmt.Println("### Contract creation")
+	fmt.Println("======== Contract creation ========")
 	ret, addrContract, leftOverGas, err := bvm.Create(accountRef, common.Hex2Bytes(simple_bin), 100000000, big.NewInt(0))
 	if err != nil {
 		fmt.Println("Contract deployment unsuccessful")
+		fmt.Println("Return of contract", common.Bytes2Hex(ret))
 		fmt.Println(err)
 	} else {
 		fmt.Println("Successful contract deployment")
+		fmt.Println("Left over gas : ", leftOverGas)
+		fmt.Println("Contract address", addrContract.Hex())
 	}
-	fmt.Println("Return of contract", common.Bytes2Hex(ret))
-	fmt.Println("Left over gas : ", leftOverGas)
-	fmt.Println("Contract address", addrContract.Hex())
-	fmt.Println("### Contract call")
-	ret_call, leftOverGas, err := bvm.Call(accountRef, addrContract, constructor, leftOverGas, big.NewInt(0))
+
+	fmt.Println("======== Contract call ========")
+	ret_call, leftOverGas, err := bvm.Call(accountRef, addrContract, send, leftOverGas, big.NewInt(0))
 	if err != nil {
 		fmt.Println("Contract call unsuccessful")
 		fmt.Println(err)
@@ -95,14 +96,14 @@ func main() {
 		fmt.Println("Nonce contract", sdb.GetNonce(addrContract))
 	}
 
-	ret_call1, leftOverGas1, err := bvm.Call(accountRef, addrContract, transfer_token, leftOverGas, big.NewInt(0))
+	ret_call2, leftOverGas, err := bvm.Call(accountRef, addrContract, get, leftOverGas, big.NewInt(0))
 	if err != nil {
 		fmt.Println("Contract call unsuccessful")
 		fmt.Println(err)
 	} else {
 		fmt.Println("Successful contract call")
-		fmt.Println("Return of call", common.Bytes2Hex(ret_call1))
-		fmt.Println("Left over gas : ", leftOverGas1)
+		fmt.Println("Return of call", ret_call2)
+		fmt.Println("Left over gas : ", leftOverGas)
 		fmt.Println("Nonce contract", sdb.GetNonce(addrContract))
 	}
 
