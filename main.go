@@ -28,12 +28,22 @@ func main() {
 		fmt.Println(err)
 	}
 
-	send, err := abi.Pack("send", common.HexToAddress(A_public_key), big.NewInt(1))
+	create, err := abi.Pack("create", big.NewInt(10000000), common.HexToAddress(A_public_key))
 	if err != nil {
 		fmt.Println(err)
 	}
 
 	get, err := abi.Pack("getBalance", common.HexToAddress(A_public_key))
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	send, err := abi.Pack("send", common.HexToAddress(A_public_key), big.NewInt(16))
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	get1, err := abi.Pack("getBalance", common.HexToAddress(A_public_key))
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -85,24 +95,52 @@ func main() {
 	}
 
 	fmt.Println("======== Contract call ========")
-	ret_call, leftOverGas, err := bvm.Call(accountRef, addrContract, send, leftOverGas, big.NewInt(0))
+	create_call, leftOverGas, err := bvm.Call(accountRef, addrContract, create, leftOverGas, big.NewInt(0))
 	if err != nil {
-		fmt.Println("Contract call unsuccessful")
+		fmt.Println("token creation unsuccessful")
 		fmt.Println(err)
 	} else {
-		fmt.Println("Successful contract call")
-		fmt.Println("Return of call", string(ret_call))
+		fmt.Println("Successful token creation")
+		fmt.Println("Return of call", string(create_call))
+		fmt.Println("Left over gas : ", leftOverGas)
+	}
+	get_call, leftOverGas, err := bvm.Call(accountRef, addrContract, get, leftOverGas, big.NewInt(0))
+	if err != nil {
+		fmt.Println("get unsuccessful")
+		fmt.Println(err)
+	} else {
+		fmt.Println("Successful get")
+		fmt.Println("Return of call", common.Bytes2Hex(get_call))
+		fmt.Println("Left over gas : ", leftOverGas)
+	}
+
+	send_call, leftOverGas, err := bvm.Call(accountRef, addrContract, send, leftOverGas, big.NewInt(0))
+	if err != nil {
+		fmt.Println("send unsuccessful")
+		fmt.Println(err)
+	} else {
+		fmt.Println("Successful send")
+		fmt.Println("Return of call", common.Bytes2Hex(send_call))
+		fmt.Println("Left over gas : ", leftOverGas)
+	}
+
+	get1_call, leftOverGas, err := bvm.Call(accountRef, addrContract, get1, leftOverGas, big.NewInt(0))
+	if err != nil {
+		fmt.Println("get unsuccessful")
+		fmt.Println(err)
+	} else {
+		fmt.Println("Successful get")
+		fmt.Println("Return of call", common.Bytes2Hex(get1_call))
 		fmt.Println("Left over gas : ", leftOverGas)
 		fmt.Println("Nonce contract", sdb.GetNonce(addrContract))
 	}
-
-	ret_call2, leftOverGas, err := bvm.Call(accountRef, addrContract, get, leftOverGas, big.NewInt(0))
+	get11_call, leftOverGas, err := bvm.Call(accountRef, addrContract, get1, leftOverGas, big.NewInt(0))
 	if err != nil {
-		fmt.Println("Contract call unsuccessful")
+		fmt.Println("get unsuccessful")
 		fmt.Println(err)
 	} else {
-		fmt.Println("Successful contract call")
-		fmt.Println("Return of call", ret_call2)
+		fmt.Println("Successful get")
+		fmt.Println("Return of call", common.Bytes2Hex(get11_call))
 		fmt.Println("Left over gas : ", leftOverGas)
 		fmt.Println("Nonce contract", sdb.GetNonce(addrContract))
 	}
