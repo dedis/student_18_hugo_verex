@@ -12,9 +12,15 @@ contract ModifiedToken {
         balanceOf[toGiveTo] = initialSupply;              // Give the creator all initial tokens
     }
 
-    function send(address _to, uint amount) public returns (bool){
-      balanceOf[_to] = balanceOf[_to] + amount;
-      return true;
+    function send(address _from, address _to, uint _amount) public returns (bool){
+      if(balanceOf[_from]>= _amount && balanceOf[_to] + _amount >= balanceOf[_to]){
+        balanceOf[_to] = balanceOf[_to] + _amount;
+        balanceOf[_from] = balanceOf[_from] - _amount;
+        return true;
+      } else {
+        return false;
+      }
+
     }
 
     /* Send coins */

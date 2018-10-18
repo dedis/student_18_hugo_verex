@@ -19,7 +19,7 @@ func main() {
 	simple_abi, simple_bin := getSC(contracts_path, "ModifiedToken")
 
 	A_public_key, _ := getKeys()
-	//B_public_key, _ := getKeys1()
+	B_public_key, _ := getKeys1()
 
 	accountRef := vm.AccountRef(common.HexToAddress(A_public_key))
 
@@ -28,7 +28,7 @@ func main() {
 		fmt.Println(err)
 	}
 
-	create, err := abi.Pack("create", big.NewInt(10000000), common.HexToAddress(A_public_key))
+	create, err := abi.Pack("create", big.NewInt(4096), common.HexToAddress(A_public_key))
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -38,12 +38,21 @@ func main() {
 		fmt.Println(err)
 	}
 
-	send, err := abi.Pack("send", common.HexToAddress(A_public_key), big.NewInt(16))
+	send, err := abi.Pack("send", common.HexToAddress(A_public_key), common.HexToAddress(B_public_key), big.NewInt(16))
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	get1, err := abi.Pack("getBalance", common.HexToAddress(A_public_key))
+	get1, err := abi.Pack("getBalance", common.HexToAddress(B_public_key))
+	if err != nil {
+		fmt.Println(err)
+	}
+	get2, err := abi.Pack("getBalance", common.HexToAddress(A_public_key))
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	transfer_test, err := abi.Pack("transfer", common.HexToAddress(B_public_key), 10)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -86,63 +95,65 @@ func main() {
 	ret, addrContract, leftOverGas, err := bvm.Create(accountRef, common.Hex2Bytes(simple_bin), 100000000, big.NewInt(0))
 	if err != nil {
 		fmt.Println("Contract deployment unsuccessful")
-		fmt.Println("Return of contract", common.Bytes2Hex(ret))
+		fmt.Println("Return of contract creation", common.Bytes2Hex(ret))
 		fmt.Println(err)
 	} else {
-		fmt.Println("Successful contract deployment")
-		fmt.Println("Left over gas : ", leftOverGas)
-		fmt.Println("Contract address", addrContract.Hex())
+		fmt.Println("- Successful contract deployment")
+		fmt.Println("- New contract address", addrContract.Hex())
 	}
 
 	fmt.Println("======== Contract call ========")
-	create_call, leftOverGas, err := bvm.Call(accountRef, addrContract, create, leftOverGas, big.NewInt(0))
+	_, leftOverGas, err = bvm.Call(accountRef, addrContract, create, leftOverGas, big.NewInt(0))
 	if err != nil {
 		fmt.Println("token creation unsuccessful")
 		fmt.Println(err)
 	} else {
-		fmt.Println("Successful token creation")
-		fmt.Println("Return of call", string(create_call))
-		fmt.Println("Left over gas : ", leftOverGas)
+		fmt.Println("- Successful token creation")
 	}
 	get_call, leftOverGas, err := bvm.Call(accountRef, addrContract, get, leftOverGas, big.NewInt(0))
 	if err != nil {
 		fmt.Println("get unsuccessful")
 		fmt.Println(err)
 	} else {
-		fmt.Println("Successful get")
-		fmt.Println("Return of call", common.Bytes2Hex(get_call))
-		fmt.Println("Left over gas : ", leftOverGas)
+		fmt.Println("- Successful balance fetch")
+		fmt.Println("The balance of : ", A_public_key, " is ", get_call)
 	}
 
-	send_call, leftOverGas, err := bvm.Call(accountRef, addrContract, send, leftOverGas, big.NewInt(0))
+	_, leftOverGas, err = bvm.Call(accountRef, addrContract, send, leftOverGas, big.NewInt(0))
 	if err != nil {
 		fmt.Println("send unsuccessful")
 		fmt.Println(err)
 	} else {
-		fmt.Println("Successful send")
-		fmt.Println("Return of call", common.Bytes2Hex(send_call))
-		fmt.Println("Left over gas : ", leftOverGas)
+		fmt.Println("- Successful send from ", A_public_key, " to ", B_public_key)
 	}
 
 	get1_call, leftOverGas, err := bvm.Call(accountRef, addrContract, get1, leftOverGas, big.NewInt(0))
 	if err != nil {
 		fmt.Println("get unsuccessful")
 		fmt.Println(err)
-	} else {
-		fmt.Println("Successful get")
-		fmt.Println("Return of call", common.Bytes2Hex(get1_call))
 		fmt.Println("Left over gas : ", leftOverGas)
-		fmt.Println("Nonce contract", sdb.GetNonce(addrContract))
+	} else {
+		fmt.Println("- Successful balance fetch")
+		fmt.Println("The balance of :", B_public_key, " is ", get1_call)
 	}
-	get11_call, leftOverGas, err := bvm.Call(accountRef, addrContract, get1, leftOverGas, big.NewInt(0))
+	get11_call, leftOverGas, err := bvm.Call(accountRef, addrContract, get2, leftOverGas, big.NewInt(0))
 	if err != nil {
 		fmt.Println("get unsuccessful")
+		fmt.Println("Left over gas : ", leftOverGas)
 		fmt.Println(err)
 	} else {
-		fmt.Println("Successful get")
-		fmt.Println("Return of call", common.Bytes2Hex(get11_call))
+		fmt.Println("- Successful balance fetch")
+		fmt.Println("Balance of ", A_public_key, " is ", get11_call)
+	}
+
+	transfer_call, leftOverGas, err := bvm.Call(accountRef, addrContract, transfer_test, leftOverGas, big.NewInt(0))
+	if err != nil {
+		fmt.Println("transfer unsuccessful")
 		fmt.Println("Left over gas : ", leftOverGas)
-		fmt.Println("Nonce contract", sdb.GetNonce(addrContract))
+		fmt.Println(err)
+	} else {
+		fmt.Println("Successful transfer")
+		fmt.Println("Return of call", common.Bytes2Hex(transfer_call))
 	}
 
 }
