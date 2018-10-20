@@ -38,7 +38,7 @@ func main() {
 		fmt.Println(err)
 	}
 
-	send, err := abi.Pack("send", common.HexToAddress(A_public_key), common.HexToAddress(B_public_key), big.NewInt(16))
+	send, err := abi.Pack("transfer", common.HexToAddress(A_public_key), common.HexToAddress(B_public_key), big.NewInt(16))
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -52,7 +52,7 @@ func main() {
 		fmt.Println(err)
 	}
 
-	transfer_test, err := abi.Pack("transfer", common.HexToAddress(B_public_key), 10)
+	transfer_test, err := abi.Pack("transfer", common.HexToAddress(A_public_key), common.HexToAddress(B_public_key), big.NewInt(16))
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -116,7 +116,7 @@ func main() {
 		fmt.Println(err)
 	} else {
 		fmt.Println("- Successful balance fetch")
-		fmt.Println("The balance of : ", A_public_key, " is ", get_call)
+		fmt.Println("The balance of : ", A_public_key, " is ", common.Bytes2Hex(get_call))
 	}
 
 	_, leftOverGas, err = bvm.Call(accountRef, addrContract, send, leftOverGas, big.NewInt(0))
@@ -126,7 +126,6 @@ func main() {
 	} else {
 		fmt.Println("- Successful send from ", A_public_key, " to ", B_public_key)
 	}
-
 	get1_call, leftOverGas, err := bvm.Call(accountRef, addrContract, get1, leftOverGas, big.NewInt(0))
 	if err != nil {
 		fmt.Println("get unsuccessful")
@@ -134,7 +133,7 @@ func main() {
 		fmt.Println("Left over gas : ", leftOverGas)
 	} else {
 		fmt.Println("- Successful balance fetch")
-		fmt.Println("The balance of :", B_public_key, " is ", get1_call)
+		fmt.Println("The balance of :", B_public_key, " is ", common.Bytes2Hex(get1_call))
 	}
 	get11_call, leftOverGas, err := bvm.Call(accountRef, addrContract, get2, leftOverGas, big.NewInt(0))
 	if err != nil {
@@ -143,17 +142,34 @@ func main() {
 		fmt.Println(err)
 	} else {
 		fmt.Println("- Successful balance fetch")
-		fmt.Println("Balance of ", A_public_key, " is ", get11_call)
+		fmt.Println("Balance of ", A_public_key, " is ", common.Bytes2Hex(get11_call))
 	}
 
-	transfer_call, leftOverGas, err := bvm.Call(accountRef, addrContract, transfer_test, leftOverGas, big.NewInt(0))
+	_, leftOverGas, err = bvm.Call(accountRef, addrContract, transfer_test, leftOverGas, big.NewInt(0))
 	if err != nil {
 		fmt.Println("transfer unsuccessful")
 		fmt.Println("Left over gas : ", leftOverGas)
 		fmt.Println(err)
 	} else {
 		fmt.Println("Successful transfer")
-		fmt.Println("Return of call", common.Bytes2Hex(transfer_call))
+	}
+	get1_call, leftOverGas, err = bvm.Call(accountRef, addrContract, get1, leftOverGas, big.NewInt(0))
+	if err != nil {
+		fmt.Println("get unsuccessful")
+		fmt.Println(err)
+		fmt.Println("Left over gas : ", leftOverGas)
+	} else {
+		fmt.Println("- Successful balance fetch")
+		fmt.Println("The balance of :", B_public_key, " is ", common.Bytes2Hex(get1_call))
+	}
+	get11_call, leftOverGas, err = bvm.Call(accountRef, addrContract, get2, leftOverGas, big.NewInt(0))
+	if err != nil {
+		fmt.Println("get unsuccessful")
+		fmt.Println("Left over gas : ", leftOverGas)
+		fmt.Println(err)
+	} else {
+		fmt.Println("- Successful balance fetch")
+		fmt.Println("Balance of ", A_public_key, " is ", common.Bytes2Hex(get11_call))
 	}
 
 }
