@@ -101,6 +101,7 @@ func getVMConfig() vm.Config {
 }
 
 func getDB() (*state.StateDB, error) {
+	//pass byzcoin evm db instead
 	db := state.NewDatabase(ethdb.NewMemDatabase())
 	//func New(root common.Hash, db Database) (*StateDB, error)
 	//Create a new state from a given trie.
