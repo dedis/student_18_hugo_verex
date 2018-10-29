@@ -24,36 +24,49 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 	if err != nil {
 		return
 	}
-
 	var value []byte
 	var darcID darc.ID
 	value, _, darcID, err = cdb.GetValues(inst.InstanceID.Slice())
 	if err != nil {
 		return
 	}
-	var coin_instance byzcoin.Coin
-	if inst.Spawn == nil {
-		// Only if its NOT a spawn instruction is there data in the instance
-		if value != nil {
-			err = protobuf.Decode(value, &coin_instance)
-			if err != nil {
-				return nil, nil, errors.New("couldn't unmarshal instance data: " + err.Error())
-			}
-		}
-	}
 
 	switch inst.GetType() {
 	case byzcoin.SpawnType:
 		bvm := spawnEvm()
+		cs := NewContractStruct(inst.Spawn.Args)
+		var csBuf []byte
+		csBuf, err = protobuf.Encode(&cs)
+		if err != nil {
+			return
+		}
+		scs = []byzcoin.StateChange{
+			byzcoin.NewStateChange(byzcoin.Create, instID, contractBvmID, csBuf, darcID),
+		}
+		return
 
 	case byzcoin.InvokeType:
 
-		switch inst.Invoke.Command {
-		case "createAccount":
-		case "sendCommand":
-		case "mintCoins":
-		}
+		/*
+			case "createAccount":
+				fmt.Println("Creating account")
+			case "sendCommand":
+				fmt.Println("Sending command")
+			case "mintCoin":
+				fmt.Println("Sending command")
+		*/
 	}
 
-	return nil
+	err = errors.New("didn't find any instructions")
+	return
+
+}
+
+func NewContractStruct(args byzcoin.Arguments) KeyValueData {
+	cs := KeyValueData{}
+	for _, kv := range args {
+		cs.Storage = append(cs.Storage, KeyValue{kv.Name, kv.Value})
+	}
+	return cs
+
 }
