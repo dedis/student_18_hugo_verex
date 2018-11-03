@@ -2,9 +2,10 @@ package byzcoin
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/dedis/cothority/byzcoin"
-	"github.com/dedis/darc"
+	"github.com/dedis/cothority/darc"
 	"github.com/dedis/protobuf"
 )
 
@@ -24,9 +25,10 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 	if err != nil {
 		return
 	}
-	var value []byte
+
+	var csBuf []byte
 	var darcID darc.ID
-	value, _, darcID, err = cdb.GetValues(inst.InstanceID.Slice())
+	csBuf, _, darcID, err = cdb.GetValues(inst.InstanceID.Slice())
 	if err != nil {
 		return
 	}
@@ -40,21 +42,29 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 		if err != nil {
 			return
 		}
+		instID := inst.DeriveID("")
+
 		scs = []byzcoin.StateChange{
 			byzcoin.NewStateChange(byzcoin.Create, instID, contractBvmID, csBuf, darcID),
 		}
 		return
 
 	case byzcoin.InvokeType:
+		//create db out of csbuf
+		switch inst.Invoke.Command {
+		case "createAccount":
+			fmt.Println("Creating account")
+		case "sendCommand":
+			fmt.Println("Sending command")
+		case "mintCoin":
+			fmt.Println("Sending command")
 
-		/*
-			case "createAccount":
-				fmt.Println("Creating account")
-			case "sendCommand":
-				fmt.Println("Sending command")
-			case "mintCoin":
-				fmt.Println("Sending command")
-		*/
+		}
+
+		scs = []byzcoin.StateChange{
+			byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, contractBvmID, csBuf, darcID),
+		}
+		return
 	}
 
 	err = errors.New("didn't find any instructions")

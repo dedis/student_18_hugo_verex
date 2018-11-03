@@ -2,6 +2,8 @@ package byzcoin
 
 import (
 	"fmt"
+	"github.com/dedis/protobuf"
+	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 
@@ -37,10 +39,8 @@ func TestbvmContract_Spawn(t *testing.T) {
   cs := KeyValueData{}
   err = protobuf.Decode(values[0], &cs)
   require.Nil(t, err)
-
-
-
   //do the actual testing here
+
 }
 
 // bcTest is used here to provide some simple test structure for different

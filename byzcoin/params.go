@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"math/big"
-	"os/exec"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -14,17 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
 )
-
-func compileContract() {
-	fmt.Println("compiling contract")
-	cmd := exec.Command("solcjs", "simple.sol", "--abi")
-	if err := cmd.Start(); err != nil {
-		fmt.Println("problem in compiling")
-		log.Fatal(err)
-	} else {
-		fmt.Println("Compilation successful")
-	}
-}
 
 //returns abi and bytecode
 func getSC(path string, name_of_contract string) (string, string) {
@@ -101,9 +89,9 @@ func getVMConfig() vm.Config {
 }
 
 func getDB() (*state.StateDB, error) {
-	//pass byzcoin evm db instead
+	//pass byzcoin evm DB instead
 	db := state.NewDatabase(ethdb.NewMemDatabase())
-	//func New(root common.Hash, db Database) (*StateDB, error)
+	//func New(root common.Hash, DB Database) (*StateDB, error)
 	//Create a new state from a given trie.
 	sdb, err := state.New(common.HexToHash("0x0000000000000000000000000000000000000000"), db)
 	if err != nil {
