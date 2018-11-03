@@ -32,7 +32,7 @@ func returnGetHash() func(uint64) common.Hash {
 
 }
 
-func spawnEvm() *vm.EVM {
+func spawnEvm(data []byte) *vm.EVM {
 	sdb, err := getDB()
 	if err != nil {
 		fmt.Println(err)

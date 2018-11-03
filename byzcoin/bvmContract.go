@@ -19,8 +19,8 @@ invoke:mintCoins - send that many coins directly to the account, out of nowhere
 var contractBvmID = "bvm"
 
 func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byzcoin.Coin) (scs []byzcoin.StateChange, cOut []byzcoin.Coin, err error) {
-	cOut = cIn
 
+	cOut = cIn
 	err = inst.VerifyDarcSignature(cdb)
 	if err != nil {
 		return
@@ -43,7 +43,6 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			return
 		}
 		instID := inst.DeriveID("")
-
 		scs = []byzcoin.StateChange{
 			byzcoin.NewStateChange(byzcoin.Create, instID, contractBvmID, csBuf, darcID),
 		}
@@ -53,7 +52,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 		//create db out of csbuf
 		switch inst.Invoke.Command {
 		case "createAccount":
-			fmt.Println("Creating account")
+
 		case "sendCommand":
 			fmt.Println("Sending command")
 		case "mintCoin":

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/ecdsa"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -10,11 +11,23 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/core/vm/runtime"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/pborman/uuid"
 )
 
-//returns abi and bytecode
+//Key creation from Ethereum library
+type Key struct {
+	Id uuid.UUID // Version 4 "random" for unique id not derived from key data
+	// to simplify lookups we also store the address
+	Address common.Address
+	// we only store privkey as pubkey/address can be derived from it
+	// privkey in this struct is always in plaintext
+	PrivateKey *ecdsa.PrivateKey
+}
+
+//returns abi and bytecode of solidity contract
 func getSmartContract(path string, nameOfContract string) (string, string) {
 	abi, err := ioutil.ReadFile(path + nameOfContract + "_sol_" + nameOfContract + ".abi")
 	if err != nil {
@@ -31,15 +44,26 @@ func getSmartContract(path string, nameOfContract string) (string, string) {
 	return string(abi), string(bin)
 }
 
-func getKeys() (string, string) {
-	privateKey := "d07fa6ac3deb2a186b2a6381c9012d595d5c3d4fefb4dbb2856d00485e9ed1af"
-	publicKey := "0xE420b7546D387039dDaD2741a688CbEBD2578363"
-	return publicKey, privateKey
+//CreateAccount creates an account and load it with ether
+func CreateAccount() common.Address {
+
+	private, err := crypto.GenerateKey()
+	if err != nil {
+		fmt.Println(err)
+	}
+	key := NewKeyFromECDSA(private)
+	return key.Address
+
 }
-func getKeys1() (string, string) {
-	privateKey := "2d456877faf65f60ec24d5a55a9a4c4aa6580ea7313c6733cd3afe83888bef6a"
-	publicKey := "0xe745E7ceA88A02a1Fabd4aE591371eF50BFDc099"
-	return publicKey, privateKey
+
+func NewKeyFromECDSA(privateKeyECDSA *ecdsa.PrivateKey) *Key {
+	id := uuid.NewRandom()
+	key := &Key{
+		Id:         id,
+		Address:    crypto.PubkeyToAddress(privateKeyECDSA.PublicKey),
+		PrivateKey: privateKeyECDSA,
+	}
+	return key
 }
 
 func getChainConfig() *params.ChainConfig {
@@ -101,7 +125,7 @@ func getDB() (*state.StateDB, error) {
 }
 
 func getConfig() *runtime.Config {
-	publicKey, _ := getKeys()
+	publicKey := CreateAccount()
 	sdb, err := getDB()
 	if err != nil {
 		fmt.Println(err)
@@ -109,8 +133,8 @@ func getConfig() *runtime.Config {
 	config := &runtime.Config{
 		ChainConfig: getChainConfig(),
 		Difficulty:  big.NewInt(1),
-		Origin:      common.HexToAddress(publicKey),
-		Coinbase:    common.HexToAddress(publicKey),
+		Origin:      publicKey,
+		Coinbase:    publicKey,
 		BlockNumber: big.NewInt(1),
 		Time:        big.NewInt(1),
 		GasLimit:    1,

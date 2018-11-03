@@ -2,10 +2,11 @@ package byzcoin
 
 import (
 	"fmt"
-	"github.com/dedis/protobuf"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	"github.com/dedis/protobuf"
+	"github.com/stretchr/testify/require"
 
 	"github.com/dedis/cothority"
 	"github.com/dedis/cothority/byzcoin"
@@ -17,29 +18,29 @@ func TestbvmContract_Spawn(t *testing.T) {
 	fmt.Println("Test of spawn")
 	bct := newBCTest(t)
 	defer bct.Close()
-  args := {
 
-  }
+	   args := {
 
-  instID := bct.createBvm(t, args)
+	   }
 
+	instID := bct.createBvm(t, args)
 
-  //Is proof needed here?
+	//Is proof needed here?
 
-  // Wait for the proof to be available.
+	// Wait for the proof to be available.
 	pr, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
 	require.Nil(t, err)
 	// Make sure the proof is a matching proof and not a proof of absence.
 	require.True(t, pr.InclusionProof.Match())
 
-  // Get the raw values of the proof.
-  values, err := pr.InclusionProof.RawValues()
-  require.Nil(t, err)
-  // And decode the buffer to a ContractStruct.
-  cs := KeyValueData{}
-  err = protobuf.Decode(values[0], &cs)
-  require.Nil(t, err)
-  //do the actual testing here
+	// Get the raw values of the proof.
+	values, err := pr.InclusionProof.RawValues()
+	require.Nil(t, err)
+	// And decode the buffer to a ContractStruct.
+	cs := KeyValueData{}
+	err = protobuf.Decode(values[0], &cs)
+	require.Nil(t, err)
+	//do the actual testing here
 
 }
 
@@ -81,20 +82,20 @@ func newBCTest(t *testing.T) (out *bcTest) {
 }
 
 func (bct *bcTest) createBvm(t *testing.T, args byzcoin.Arguments) byzcoin.InstanceID {
-  ctx := byzcoin.ClientTransaction{
-    Instructions: []byzcoin.Instruction{{
-      InstanceID: byzcoin.NewInstanceID(bct.gDarc.GetBaseID()),
-      Nonce:      byzcoin.Nonce{},
-      Index:      0,
-      Length:     1,
-      Spawn: &byzcoin.Spawn{
-        ContractID: ContractKeyValueID,
-        Args:       args,
-      },
-    }},
-  }
+	ctx := byzcoin.ClientTransaction{
+		Instructions: []byzcoin.Instruction{{
+			InstanceID: byzcoin.NewInstanceID(bct.gDarc.GetBaseID()),
+			Nonce:      byzcoin.Nonce{},
+			Index:      0,
+			Length:     1,
+			Spawn: &byzcoin.Spawn{
+				ContractID: ContractKeyValueID,
+				Args:       args,
+			},
+		}},
+	}
 
-  // And we need to sign the instruction with the signer that has his
+	// And we need to sign the instruction with the signer that has his
 	// public key stored in the darc.
 	require.Nil(t, ctx.Instructions[0].SignBy(bct.gDarc.GetBaseID(), bct.signer))
 

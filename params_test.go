@@ -18,41 +18,41 @@ func TestTokenContract(t *testing.T) {
 
 	simpleAbi, simpleBin := getSmartContract(contractsPath, "ModifiedToken")
 
-	aPublicKey, _ := getKeys()
-	bPublicKey, _ := getKeys1()
+	aPublicKey := CreateAccount()
+	bPublicKey := CreateAccount()
 
-	accountRef := vm.AccountRef(common.HexToAddress(aPublicKey))
+	accountRef := vm.AccountRef(aPublicKey)
 
 	abi, err := abi.JSON(strings.NewReader(simpleAbi))
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	create, err := abi.Pack("create", big.NewInt(4096), common.HexToAddress(aPublicKey))
+	create, err := abi.Pack("create", big.NewInt(4096), aPublicKey)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	get, err := abi.Pack("getBalance", common.HexToAddress(aPublicKey))
+	get, err := abi.Pack("getBalance", aPublicKey)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	send, err := abi.Pack("transfer", common.HexToAddress(aPublicKey), common.HexToAddress(bPublicKey), big.NewInt(16))
+	send, err := abi.Pack("transfer", aPublicKey, bPublicKey, big.NewInt(16))
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	get1, err := abi.Pack("getBalance", common.HexToAddress(bPublicKey))
+	get1, err := abi.Pack("getBalance", bPublicKey)
 	if err != nil {
 		fmt.Println(err)
 	}
-	get2, err := abi.Pack("getBalance", common.HexToAddress(aPublicKey))
+	get2, err := abi.Pack("getBalance", aPublicKey)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	transferTests, err := abi.Pack("transfer", common.HexToAddress(aPublicKey), common.HexToAddress(bPublicKey), big.NewInt(16))
+	transferTests, err := abi.Pack("transfer", aPublicKey, bPublicKey, big.NewInt(16))
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -75,10 +75,10 @@ func TestTokenContract(t *testing.T) {
 		return common.HexToHash("0x0000000000000000000000000000000000000000")
 	}
 
-	sdb.SetBalance(common.HexToAddress(aPublicKey), big.NewInt(1000000000000))
+	sdb.SetBalance(aPublicKey, big.NewInt(1000000000000))
 
 	fmt.Println("Setting up context")
-	ctx := vm.Context{CanTransfer: canTransfer, Transfer: transfer, GetHash: gethash, Origin: common.HexToAddress(aPublicKey), GasPrice: big.NewInt(1), Coinbase: common.HexToAddress(aPublicKey), GasLimit: 10000000000, BlockNumber: big.NewInt(0), Time: big.NewInt(1), Difficulty: big.NewInt(1)}
+	ctx := vm.Context{CanTransfer: canTransfer, Transfer: transfer, GetHash: gethash, Origin: aPublicKey, GasPrice: big.NewInt(1), Coinbase: aPublicKey, GasLimit: 10000000000, BlockNumber: big.NewInt(0), Time: big.NewInt(1), Difficulty: big.NewInt(1)}
 
 	fmt.Println("Setting up & checking VMs")
 	bvm := vm.NewEVM(ctx, sdb, getChainConfig(), getVMConfig())

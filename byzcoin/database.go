@@ -36,13 +36,13 @@ type MemDatabase struct {
 }
 
 func NewMemDatabase(data []byte) (*MemDatabase, error) {
-	db := &MemDatabase{}
-	err := protobuf.Decode(data, db)
+	DB := &MemDatabase{}
+	err := protobuf.Decode(data, DB)
 	if err != nil {
 		fmt.Println("Error with memory database")
 		return nil, err
 	}
-	return db, nil
+	return DB, nil
 }
 
 func NewMemDatabaseWithCap(size int) *MemDatabase {

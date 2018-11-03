@@ -6,11 +6,11 @@ import (
 	"log"
 	"math/big"
 
+	"github.com/dedis/cothority/byzcoin"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/core/vm/runtime"
-	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
 )
 
@@ -88,9 +88,9 @@ func getVMConfig() vm.Config {
 	return *vmconfig
 }
 
-func getDB() (*state.StateDB, error) {
+func getDB(data []byte) (*state.StateDB, error) {
 	//pass byzcoin evm DB instead
-	db := state.NewDatabase(ethdb.NewMemDatabase())
+	db := state.NewDatabase(byzcoin.NewMemDatabase(data))
 	//func New(root common.Hash, DB Database) (*StateDB, error)
 	//Create a new state from a given trie.
 	sdb, err := state.New(common.HexToHash("0x0000000000000000000000000000000000000000"), db)
@@ -102,7 +102,10 @@ func getDB() (*state.StateDB, error) {
 
 func getConfig() *runtime.Config {
 	public_key, _ := getKeys()
-	sdb, _ := getDB()
+	sdb, err := getDB()
+	if err != nil {
+		fmt.Println(err)
+	}
 	config := &runtime.Config{
 		ChainConfig: getChainConfig(),
 		Difficulty:  big.NewInt(1),
