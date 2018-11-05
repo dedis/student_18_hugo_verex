@@ -1,28 +1,39 @@
 package byzcoin
 
 import (
+	"crypto/ecdsa"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"math/big"
 
-	"github.com/dedis/cothority/byzcoin"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/core/vm/runtime"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/pborman/uuid"
 )
 
-//returns abi and bytecode
-func getSC(path string, name_of_contract string) (string, string) {
-	abi, err := ioutil.ReadFile(path + name_of_contract + "_sol_" + name_of_contract + ".abi")
+//Key creation from Ethereum library
+type Key struct {
+	Id uuid.UUID // Version 4 "random" for unique id not derived from key data
+	// to simplify lookups we also store the address
+	Address common.Address
+	// we only store privkey as pubkey/address can be derived from it
+	// privkey in this struct is always in plaintext
+	PrivateKey *ecdsa.PrivateKey
+}
+
+//returns abi and bytecode of solidity contract
+func getSmartContract(path string, nameOfContract string) (string, string) {
+	abi, err := ioutil.ReadFile(path + nameOfContract + "_sol_" + nameOfContract + ".abi")
 	if err != nil {
 		fmt.Println("Problem generating contract ABI")
 	} else {
 		fmt.Println("ABI generated")
 	}
-	bin, err := ioutil.ReadFile(path + name_of_contract + "_sol_" + name_of_contract + ".bin")
+	bin, err := ioutil.ReadFile(path + nameOfContract + "_sol_" + nameOfContract + ".bin")
 	if err != nil {
 		fmt.Println("Problem generating contract BIN")
 	} else {
@@ -31,15 +42,34 @@ func getSC(path string, name_of_contract string) (string, string) {
 	return string(abi), string(bin)
 }
 
-func getKeys() (string, string) {
-	private_key := "d07fa6ac3deb2a186b2a6381c9012d595d5c3d4fefb4dbb2856d00485e9ed1af"
-	public_key := "0xE420b7546D387039dDaD2741a688CbEBD2578363"
-	return public_key, private_key
+func GenerateKeys() (address common.Address, privateKey *ecdsa.PrivateKey) {
+	private, err := crypto.GenerateKey()
+	if err != nil {
+		fmt.Println(err)
+	}
+	key := NewKeyFromECDSA(private)
+	address = key.Address
+	privateKey = key.PrivateKey
+	return
 }
-func getKeys1() (string, string) {
-	private_key := "2d456877faf65f60ec24d5a55a9a4c4aa6580ea7313c6733cd3afe83888bef6a"
-	public_key := "0xe745E7ceA88A02a1Fabd4aE591371eF50BFDc099"
-	return public_key, private_key
+
+//LoadAccount creates an account and load it with ether
+func LoadAccount(db *state.StateDB) common.Address {
+	publicKey, _ := GenerateKeys()
+	db.SetBalance(publicKey, big.NewInt(1000000000000000000))
+	fmt.Println("Loaded account", publicKey, "with one ether")
+	return publicKey
+}
+
+//NewKeyFromECDSA :
+func NewKeyFromECDSA(privateKeyECDSA *ecdsa.PrivateKey) *Key {
+	id := uuid.NewRandom()
+	key := &Key{
+		Id:         id,
+		Address:    crypto.PubkeyToAddress(privateKeyECDSA.PublicKey),
+		PrivateKey: privateKeyECDSA,
+	}
+	return key
 }
 
 func getChainConfig() *params.ChainConfig {
@@ -89,39 +119,16 @@ func getVMConfig() vm.Config {
 }
 
 func getDB(data []byte) (*state.StateDB, error) {
-	//pass byzcoin evm DB instead
-	db := state.NewDatabase(byzcoin.NewMemDatabase(data))
-	//func New(root common.Hash, DB Database) (*StateDB, error)
-	//Create a new state from a given trie.
+	//pass byzcoin evm db instead
+	memDb, err := NewMemDatabase(data)
+	if err != nil {
+		fmt.Println("Error in the memory DB creation")
+	}
+	db := state.NewDatabase(memDb)
+	//Creates a new state DB
 	sdb, err := state.New(common.HexToHash("0x0000000000000000000000000000000000000000"), db)
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
 	return sdb, err
-}
-
-func getConfig() *runtime.Config {
-	public_key, _ := getKeys()
-	sdb, err := getDB()
-	if err != nil {
-		fmt.Println(err)
-	}
-	config := &runtime.Config{
-		ChainConfig: getChainConfig(),
-		Difficulty:  big.NewInt(1),
-		Origin:      common.HexToAddress(public_key),
-		Coinbase:    common.HexToAddress(public_key),
-		BlockNumber: big.NewInt(1),
-		Time:        big.NewInt(1),
-		GasLimit:    1,
-		GasPrice:    big.NewInt(0),
-		Value:       big.NewInt(1),
-		Debug:       false,
-		EVMConfig:   getVMConfig(),
-
-		State: sdb,
-		//GetHashFn: func(n uint64) common.Hash,
-		//GetHashFn: core.GetHashFn,
-	}
-	return config
 }

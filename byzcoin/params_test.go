@@ -1,4 +1,4 @@
-package main
+package byzcoin
 
 import (
 	"fmt"
@@ -10,16 +10,17 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/core/vm/runtime"
 )
 
 func TestTokenContract(t *testing.T) {
 	contractsPath := "/Users/hugo/student_18_hugo_verex/contracts/"
 
 	simpleAbi, simpleBin := getSmartContract(contractsPath, "ModifiedToken")
+	//nullData := {}byte[]
+	//db, err := getDB(nullData)
 
-	aPublicKey := CreateAccount()
-	bPublicKey := CreateAccount()
+	aPublicKey, _ := GenerateKeys()
+	bPublicKey, _ := GenerateKeys()
 
 	accountRef := vm.AccountRef(aPublicKey)
 
@@ -58,8 +59,8 @@ func TestTokenContract(t *testing.T) {
 	}
 
 	fmt.Println("DB setup")
-
-	sdb, _ := getDB()
+	emptyData := []byte{}
+	sdb, _ := getDB(emptyData)
 
 	canTransfer := func(vm.StateDB, common.Address, *big.Int) bool {
 		//log.Println("Verified transfer")
@@ -82,13 +83,13 @@ func TestTokenContract(t *testing.T) {
 
 	fmt.Println("Setting up & checking VMs")
 	bvm := vm.NewEVM(ctx, sdb, getChainConfig(), getVMConfig())
-	bvm1 := runtime.NewEnv(getConfig())
+
 	bvmInterpreter := vm.NewEVMInterpreter(bvm, getVMConfig())
-	bvm1Interpreter := vm.NewEVMInterpreter(bvm1, getVMConfig())
+
 	a := bvmInterpreter.CanRun(common.Hex2Bytes(simpleBin))
-	b := bvm1Interpreter.CanRun(common.Hex2Bytes(simpleBin))
-	if !a || !b {
-		fmt.Println("Problem setting up vms")
+
+	if !a {
+		fmt.Println("Problem setting up VM")
 	}
 
 	fmt.Println("======== Contract creation ========")

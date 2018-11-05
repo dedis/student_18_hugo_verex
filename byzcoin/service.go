@@ -26,6 +26,6 @@ func newService(c *onet.Context) (onet.Service, error) {
 	s := &Service{
 		ServiceProcessor: onet.NewServiceProcessor(c),
 	}
-	byzcoin.RegisterContract(c, contractBvmID, contractBvm)
+	byzcoin.RegisterContract(c, ContractBvmID, contractBvm)
 	return s, nil
 }

@@ -14,16 +14,16 @@ import (
 	"github.com/dedis/onet"
 )
 
-func TestbvmContract_Spawn(t *testing.T) {
-	fmt.Println("Test of spawn")
+func TestContractDeployment(t *testing.T) {
+	fmt.Println("Test of contract deployment")
 	bct := newBCTest(t)
 	defer bct.Close()
-
-	   args := {
-
-	   }
-
-	instID := bct.createBvm(t, args)
+	cd := ContractDeploymentData{
+		gas: 1000000,
+	}
+	args := byzcoin.Arguments{}
+	// And send it to the ledger.
+	instID := bct.createInstance(t, args)
 
 	//Is proof needed here?
 
@@ -81,6 +81,35 @@ func newBCTest(t *testing.T) (out *bcTest) {
 	return out
 }
 
+func (bct *bcTest) Close() {
+	bct.local.CloseAll()
+}
+
+func (bct *bcTest) createInstance(t *testing.T, args byzcoin.Arguments) byzcoin.InstanceID {
+	ctx := byzcoin.ClientTransaction{
+		Instructions: []byzcoin.Instruction{{
+			InstanceID: byzcoin.NewInstanceID(bct.gDarc.GetBaseID()),
+			Nonce:      byzcoin.Nonce{},
+			Index:      0,
+			Length:     1,
+			Spawn: &byzcoin.Spawn{
+				ContractID: ContractBvmID,
+				Args:       args,
+			},
+		}},
+	}
+	// And we need to sign the instruction with the signer that has his
+	// public key stored in the darc.
+	require.Nil(t, ctx.Instructions[0].SignBy(bct.gDarc.GetBaseID(), bct.signer))
+
+	// Sending this transaction to ByzCoin does not directly include it in the
+	// global state - first we must wait for the new block to be created.
+	var err error
+	_, err = bct.cl.AddTransaction(ctx)
+	require.Nil(t, err)
+	return ctx.Instructions[0].DeriveID("")
+}
+
 func (bct *bcTest) createBvm(t *testing.T, args byzcoin.Arguments) byzcoin.InstanceID {
 	ctx := byzcoin.ClientTransaction{
 		Instructions: []byzcoin.Instruction{{
@@ -89,7 +118,7 @@ func (bct *bcTest) createBvm(t *testing.T, args byzcoin.Arguments) byzcoin.Insta
 			Index:      0,
 			Length:     1,
 			Spawn: &byzcoin.Spawn{
-				ContractID: ContractKeyValueID,
+				ContractID: ContractBvmID,
 				Args:       args,
 			},
 		}},

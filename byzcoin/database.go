@@ -26,15 +26,13 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 )
 
-/*
- * This is a test memory database. Do not use for any production it does not get persisted
- */
-//replace db with DB
+//MemDatabase structure
 type MemDatabase struct {
 	DB   map[string][]byte
 	lock sync.RWMutex
 }
 
+//NewMemDatabase creates a new memory database
 func NewMemDatabase(data []byte) (*MemDatabase, error) {
 	DB := &MemDatabase{}
 	err := protobuf.Decode(data, DB)
@@ -45,16 +43,19 @@ func NewMemDatabase(data []byte) (*MemDatabase, error) {
 	return DB, nil
 }
 
+//NewMemDatabaseWithCap :
 func NewMemDatabaseWithCap(size int) *MemDatabase {
 	return &MemDatabase{
 		DB: make(map[string][]byte, size),
 	}
 }
 
+//Dump encodes the data back
 func (db *MemDatabase) Dump() ([]byte, error) {
 	return protobuf.Encode(db)
 }
 
+//Put :
 func (db *MemDatabase) Put(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
@@ -63,6 +64,7 @@ func (db *MemDatabase) Put(key []byte, value []byte) error {
 	return nil
 }
 
+//Has :
 func (db *MemDatabase) Has(key []byte) (bool, error) {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
@@ -71,6 +73,7 @@ func (db *MemDatabase) Has(key []byte) (bool, error) {
 	return ok, nil
 }
 
+//Get  :
 func (db *MemDatabase) Get(key []byte) ([]byte, error) {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
@@ -81,6 +84,7 @@ func (db *MemDatabase) Get(key []byte) ([]byte, error) {
 	return nil, errors.New("not found")
 }
 
+//Keys :
 func (db *MemDatabase) Keys() [][]byte {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
@@ -92,6 +96,7 @@ func (db *MemDatabase) Keys() [][]byte {
 	return keys
 }
 
+//Delete :
 func (db *MemDatabase) Delete(key []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
@@ -100,12 +105,15 @@ func (db *MemDatabase) Delete(key []byte) error {
 	return nil
 }
 
+//Close :
 func (db *MemDatabase) Close() {}
 
+//NewBatch :
 func (db *MemDatabase) NewBatch() ethdb.Batch {
 	return &memBatch{db: db}
 }
 
+//Len :
 func (db *MemDatabase) Len() int { return len(db.DB) }
 
 type kv struct {
@@ -127,7 +135,7 @@ func (b *memBatch) Put(key, value []byte) error {
 
 func (b *memBatch) Delete(key []byte) error {
 	b.writes = append(b.writes, kv{common.CopyBytes(key), nil, true})
-	b.size += 1
+	b.size++
 	return nil
 }
 

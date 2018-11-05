@@ -33,15 +33,15 @@ func returnGetHash() func(uint64) common.Hash {
 }
 
 func spawnEvm(data []byte) *vm.EVM {
-	sdb, err := getDB()
+	sdb, err := getDB(data)
 	if err != nil {
 		fmt.Println(err)
 	}
 	canTransfer := returnCanTransfer()
 	transfer := returnTransfer()
 	gethash := returnGetHash()
-	pk, _ := getKeys()
-	ctx := vm.Context{CanTransfer: canTransfer, Transfer: transfer, GetHash: gethash, Origin: common.HexToAddress(pk), GasPrice: big.NewInt(1), Coinbase: common.HexToAddress(pk), GasLimit: 10000000000, BlockNumber: big.NewInt(0), Time: big.NewInt(1), Difficulty: big.NewInt(1)}
+	publicKey := LoadAccount(sdb)
+	ctx := vm.Context{CanTransfer: canTransfer, Transfer: transfer, GetHash: gethash, Origin: publicKey, GasPrice: big.NewInt(1), Coinbase: publicKey, GasLimit: 10000000000, BlockNumber: big.NewInt(0), Time: big.NewInt(1), Difficulty: big.NewInt(1)}
 	bvm := vm.NewEVM(ctx, sdb, getChainConfig(), getVMConfig())
 	return bvm
 }
