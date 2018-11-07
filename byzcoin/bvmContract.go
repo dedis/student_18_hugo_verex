@@ -3,15 +3,13 @@ package byzcoin
 import (
 	"errors"
 	"fmt"
-	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/dedis/protobuf"
 
-	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/dedis/onet/log"
 
 	"github.com/dedis/cothority/byzcoin"
 	"github.com/dedis/cothority/darc"
-	"github.com/dedis/protobuf"
 )
 
 /*
@@ -31,68 +29,58 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 	if err != nil {
 		return
 	}
-
-	var csBuf []byte
+	//Data to be stored in the memDB must be kept in the memDBBuffer
+	var memDBBuff []byte
 	var darcID darc.ID
-	csBuf, _, darcID, err = cdb.GetValues(inst.InstanceID.Slice())
+	memDBBuff, _, darcID, err = cdb.GetValues(inst.InstanceID.Slice())
 	if err != nil {
 		return
 	}
-	var bvm *vm.EVM
-	contractsPath := "/Users/hugo/student_18_hugo_verex/contracts/"
-	var gas uint64
-	var value *big.Int
 
 	switch inst.GetType() {
 	case byzcoin.SpawnType:
-		emptyData := []byte{}
-		bvm = spawnEvm(emptyData)
+		fmt.Println("Spawning..")
+		//var bvm *vm.EVM
+		memDBBuff := []byte{}
 		cs := NewContractStruct(inst.Spawn.Args)
-		var csBuf []byte
-		csBuf, err = protobuf.Encode(&cs)
-		if err != nil {
-			return
+		memDBBuff, _ = protobuf.Encode(&cs)
+		memDB, er := NewMemDatabase(memDBBuff)
+		if er != nil {
+			log.LLvl1("Problem generating DB")
 		}
+		_, memDB = spawnEvm(memDB)
+
+		fmt.Println("The mem db", memDB)
+
+		dbBuff, _ := memDB.Dump()
+		fmt.Println("The db buffer", dbBuff)
+		fmt.Println("And stop here")
+
+		//TO DO : memDb.Dump
+		//cs := NewContractStruct(inst.Spawn.Args)
+		//var memDBBuff []byte
+		//memDBBuff, err = protobuf.Encode(&cs)
+
 		instID := inst.DeriveID("")
 		scs = []byzcoin.StateChange{
-			byzcoin.NewStateChange(byzcoin.Create, instID, ContractBvmID, csBuf, darcID),
+			byzcoin.NewStateChange(byzcoin.Create, instID, ContractBvmID, memDBBuff, darcID),
 		}
 		return
 
 	case byzcoin.InvokeType:
 		//create db out of csbuf
 		switch inst.Invoke.Command {
+
 		case "createAccount":
 
 		case "deployContract":
-			fmt.Println("Deploying contract")
-			gas = 10000000000
-			value = big.NewInt(0)
-			emptyData := []byte{}
-			db, err := getDB(emptyData)
-			if err != nil {
-				fmt.Println(err)
-			}
-			publicKey := LoadAccount(db)
-			accountRef := vm.AccountRef(publicKey)
-			_, contractBinary := getSmartContract(contractsPath, "ModifiedToken")
-			ret, addrContract, leftOverGas, err := bvm.Create(accountRef, common.Hex2Bytes(contractBinary), gas, value)
-			if err != nil {
-				fmt.Println("Contract deployment unsuccessful. ", leftOverGas, " left over gas.")
-				fmt.Println("Return of contract creation", common.Bytes2Hex(ret))
-				fmt.Println(err)
-			} else {
-				fmt.Println("- Successful contract deployment")
-				fmt.Println("- New contract address", addrContract.Hex())
-			}
 
 		case "mintCoin":
-			fmt.Println("Sending command")
 
 		}
 
 		scs = []byzcoin.StateChange{
-			byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, csBuf, darcID),
+			byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, memDBBuff, darcID),
 		}
 		return
 	}

@@ -57,7 +57,7 @@ func GenerateKeys() (address common.Address, privateKey *ecdsa.PrivateKey) {
 func LoadAccount(db *state.StateDB) common.Address {
 	publicKey, _ := GenerateKeys()
 	db.SetBalance(publicKey, big.NewInt(1000000000000000000))
-	fmt.Println("Loaded account", publicKey, "with one ether")
+	fmt.Println("Loaded account", publicKey.Hex(), "with one ether")
 	return publicKey
 }
 
@@ -118,12 +118,7 @@ func getVMConfig() vm.Config {
 	return *vmconfig
 }
 
-func getDB(data []byte) (*state.StateDB, error) {
-	//pass byzcoin evm db instead
-	memDb, err := NewMemDatabase(data)
-	if err != nil {
-		fmt.Println("Error in the memory DB creation")
-	}
+func getDB(memDb *MemDatabase) (*state.StateDB, error) {
 	db := state.NewDatabase(memDb)
 	//Creates a new state DB
 	sdb, err := state.New(common.HexToHash("0x0000000000000000000000000000000000000000"), db)

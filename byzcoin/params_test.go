@@ -14,6 +14,7 @@ import (
 
 func TestTokenContract(t *testing.T) {
 	contractsPath := "/Users/hugo/student_18_hugo_verex/contracts/"
+	fmt.Println("======== EVM calls test ========")
 
 	simpleAbi, simpleBin := getSmartContract(contractsPath, "ModifiedToken")
 	//nullData := {}byte[]
@@ -60,7 +61,8 @@ func TestTokenContract(t *testing.T) {
 
 	fmt.Println("DB setup")
 	emptyData := []byte{}
-	sdb, _ := getDB(emptyData)
+	memDb, _ := NewMemDatabase(emptyData)
+	sdb, _ := getDB(memDb)
 
 	canTransfer := func(vm.StateDB, common.Address, *big.Int) bool {
 		//log.Println("Verified transfer")
@@ -117,7 +119,7 @@ func TestTokenContract(t *testing.T) {
 		fmt.Println(err)
 	} else {
 		fmt.Println("- Successful balance fetch")
-		fmt.Println("The balance of : ", aPublicKey, " is ", common.Bytes2Hex(getCall))
+		fmt.Println("The balance of : ", aPublicKey.Hex(), " is ", common.Bytes2Hex(getCall))
 	}
 
 	_, leftOverGas, err = bvm.Call(accountRef, addrContract, send, leftOverGas, big.NewInt(0))
@@ -125,7 +127,7 @@ func TestTokenContract(t *testing.T) {
 		fmt.Println("send unsuccessful")
 		fmt.Println(err)
 	} else {
-		fmt.Println("- Successful send from ", aPublicKey, " to ", bPublicKey)
+		fmt.Println("- Successful send from ", aPublicKey.Hex(), " to ", bPublicKey)
 	}
 	get1Call, leftOverGas, err := bvm.Call(accountRef, addrContract, get1, leftOverGas, big.NewInt(0))
 	if err != nil {
@@ -134,7 +136,7 @@ func TestTokenContract(t *testing.T) {
 		fmt.Println("Left over gas : ", leftOverGas)
 	} else {
 		fmt.Println("- Successful balance fetch")
-		fmt.Println("The balance of :", bPublicKey, " is ", common.Bytes2Hex(get1Call))
+		fmt.Println("The balance of :", bPublicKey.Hex(), " is ", common.Bytes2Hex(get1Call))
 	}
 	get11Calls, leftOverGas, err := bvm.Call(accountRef, addrContract, get2, leftOverGas, big.NewInt(0))
 	if err != nil {
@@ -143,7 +145,7 @@ func TestTokenContract(t *testing.T) {
 		fmt.Println(err)
 	} else {
 		fmt.Println("- Successful balance fetch")
-		fmt.Println("Balance of ", aPublicKey, " is ", common.Bytes2Hex(get11Calls))
+		fmt.Println("Balance of ", aPublicKey.Hex(), " is ", common.Bytes2Hex(get11Calls))
 	}
 
 	_, leftOverGas, err = bvm.Call(accountRef, addrContract, transferTests, leftOverGas, big.NewInt(0))
@@ -161,7 +163,7 @@ func TestTokenContract(t *testing.T) {
 		fmt.Println("Left over gas : ", leftOverGas)
 	} else {
 		fmt.Println("- Successful balance fetch")
-		fmt.Println("The balance of :", bPublicKey, " is ", common.Bytes2Hex(get1Call))
+		fmt.Println("The balance of :", bPublicKey.Hex(), " is ", common.Bytes2Hex(get1Call))
 	}
 	get11Calls, leftOverGas, err = bvm.Call(accountRef, addrContract, get2, leftOverGas, big.NewInt(0))
 	if err != nil {
@@ -170,7 +172,7 @@ func TestTokenContract(t *testing.T) {
 		fmt.Println(err)
 	} else {
 		fmt.Println("- Successful balance fetch")
-		fmt.Println("Balance of ", aPublicKey, " is ", common.Bytes2Hex(get11Calls))
+		fmt.Println("Balance of ", aPublicKey.Hex(), " is ", common.Bytes2Hex(get11Calls))
 	}
 
 }

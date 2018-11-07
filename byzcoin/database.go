@@ -18,8 +18,9 @@ package byzcoin
 
 import (
 	"errors"
-	"fmt"
 	"sync"
+
+	"github.com/dedis/onet/log"
 
 	"github.com/dedis/protobuf"
 	"github.com/ethereum/go-ethereum/common"
@@ -37,7 +38,7 @@ func NewMemDatabase(data []byte) (*MemDatabase, error) {
 	DB := &MemDatabase{}
 	err := protobuf.Decode(data, DB)
 	if err != nil {
-		fmt.Println("Error with memory database")
+		log.Lvl1("Error with memory database", err)
 		return nil, err
 	}
 	return DB, nil
