@@ -33,6 +33,8 @@ func returnGetHash() func(uint64) common.Hash {
 }
 
 func spawnEvm(memDB *MemDatabase) (*vm.EVM, *MemDatabase) {
+
+	publicKey := common.HexToAddress("0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61")
 	//TO DO : return the memDb too
 	sdb, err := getDB(memDB)
 	if err != nil {
@@ -41,7 +43,7 @@ func spawnEvm(memDB *MemDatabase) (*vm.EVM, *MemDatabase) {
 	canTransfer := returnCanTransfer()
 	transfer := returnTransfer()
 	gethash := returnGetHash()
-	publicKey := LoadAccount(sdb)
+	LoadAccount(sdb, publicKey)
 	ctx := vm.Context{CanTransfer: canTransfer, Transfer: transfer, GetHash: gethash, Origin: publicKey, GasPrice: big.NewInt(1), Coinbase: publicKey, GasLimit: 10000000000, BlockNumber: big.NewInt(0), Time: big.NewInt(1), Difficulty: big.NewInt(1)}
 	bvm := vm.NewEVM(ctx, sdb, getChainConfig(), getVMConfig())
 	fmt.Println("EVM creation done.")

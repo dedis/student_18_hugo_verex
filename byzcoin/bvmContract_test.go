@@ -20,60 +20,85 @@ func TestEVMContract_Spawn(t *testing.T) {
 	// Create a new ledger and prepare for proper closing
 	bct := newBCTest(t)
 	defer bct.Close()
-
 	// Create a new empty instance
-	args := byzcoin.Arguments{
-		{
-			Name:  "test",
-			Value: []byte{13},
-		},
-		{
-			Name:  "two",
-			Value: []byte{2},
-		},
-	}
+	args := byzcoin.Arguments{}
 	// And send it to the ledger.
 	instID := bct.createInstance(t, args)
-
 	//Actual call to Spawn is made here
 	// Wait for the proof to be available.
 	pr, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
 	require.Nil(t, err)
-	fmt.Println(pr.KeyValue())
+	//fmt.Println(pr.KeyValue())
 	// Make sure the proof is a matching proof and not a proof of absence.
 	require.True(t, pr.InclusionProof.Match())
-
 	// Get the raw values of the proof.
 	values, err := pr.InclusionProof.RawValues()
 	require.Nil(t, err)
 	// And decode the buffer to a ContractStruct.
 	cs := KeyValueData{}
-	fmt.Println("The buffer contains : ", cs)
+	//fmt.Println("The buffer contains : ", cs)
 	err = protobuf.Decode(values[0], &cs)
-	fmt.Println("The buffer now contains : ", cs)
+	//fmt.Println("The buffer now contains : ", cs)
 	require.Nil(t, err)
-
-	//do the actual testing here
-
 }
 
-func TestEVMContract_Invoke(t *testing.T) {
+func TestEVMContract_Invoke_Create(t *testing.T) {
 	fmt.Println("Test of EVM invocation")
 	bct := newBCTest(t)
 	defer bct.Close()
-	args := byzcoin.Arguments{}
+	args := byzcoin.Arguments{
+		{
+			Name:  "608060405234801561001057600080fd5b506106b7806100206000396000f30060806040526004361061006d576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680630779afe61461007257806370a08231146100f7578063beabacc81461014e578063f01fe692146101d3578063f8b2cb4f14610220575b600080fd5b34801561007e57600080fd5b506100dd600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190803573ffffffffffffffffffffffffffffffffffffffff16906020019092919080359060200190929190505050610277565b604051808215151515815260200191505060405180910390f35b34801561010357600080fd5b50610138600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610465565b6040518082815260200191505060405180910390f35b34801561015a57600080fd5b506101b9600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190803573ffffffffffffffffffffffffffffffffffffffff1690602001909291908035906020019092919050505061047d565b604051808215151515815260200191505060405180910390f35b3480156101df57600080fd5b5061021e60048036038101908080359060200190929190803573ffffffffffffffffffffffffffffffffffffffff1690602001909291905050506105fc565b005b34801561022c57600080fd5b50610261600480360381019080803573ffffffffffffffffffffffffffffffffffffffff169060200190929190505050610643565b6040518082815260200191505060405180910390f35b6000816000808673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020541015801561034557506000808473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054826000808673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020540110155b1561045957816000808573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054016000808573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002081905550816000808673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054036000808673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020819055506001905061045e565b600090505b9392505050565b60006020528060005260406000206000915090505481565b6000816000808673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054101515156104cc57600080fd5b6000808473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054826000808673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002054011015151561055957600080fd5b816000808673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060008282540392505081905550816000808573ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060008282540192505081905550600190509392505050565b816000808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020819055505050565b60008060008373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020016000205490509190505600a165627a7a72305820ddbfb05f7beb9052ec4080e56a86a2e3c87aa191ce50d9aefa285e723291889d0029",
+			Value: []byte{0},
+		},
+	}
+
 	instID := bct.createInstance(t, args)
 	// Wait for the proof to be available.
 	pr1, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
 	require.Nil(t, err)
-	fmt.Println("HERE")
-	bct.updateInstance(t, instID, args)
-	fmt.Println("HERE")
-	_, values1, err := pr1.KeyValue()
-	fmt.Println(values1)
+	bct.deployContractInstance(t, instID, args)
+	_, _, err = pr1.KeyValue()
+	//fmt.Println("The values are", values1)
 	require.Nil(t, err)
 
 }
+
+/*
+
+func TestEVMContract_Invoke_Call(t *testing.T) {
+	fmt.Println("Test of EVM invocation")
+	bct := newBCTest(t)
+	defer bct.Close()
+	args := byzcoin.Arguments{
+		{
+			Name:  `[{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_amount","type":"uint256"}],"name":"send","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"initialSupply","type":"uint256"},{"name":"toGiveTo","type":"address"}],"name":"create","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"account","type":"address"}],"name":"getBalance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}]`,
+			Value: []byte{0},
+		},
+		{
+			Name:  "create",
+			Value: []byte{0},
+		},
+		{
+			Name:  "0x45663483f58d687c8aF17B85cCCDD9391b567498",
+			Value: []byte{0},
+		},
+		{
+			Name:  "10000000000",
+			Value: []byte{0},
+		},
+	}
+
+	instID := bct.createInstance(t, args)
+	// Wait for the proof to be available.
+	pr1, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
+	_, _, err = pr1.KeyValue()
+	require.Nil(t, err)
+	bct.methodCallInstance(t, instID, args)
+	//fmt.Println("The values are", values1)
+	require.Nil(t, err)
+
+}*/
 
 // bcTest is used here to provide some simple test structure for different
 // tests.
@@ -99,7 +124,7 @@ func newBCTest(t *testing.T) (out *bcTest) {
 	// to create and update keyValue contracts.
 	var err error
 	out.gMsg, err = byzcoin.DefaultGenesisMsg(byzcoin.CurrentVersion, out.roster,
-		[]string{"spawn:keyValue", "spawn:darc", "spawn:bvm", "invoke:update", "invoke:deployContract", "invoke:createAccount"}, out.signer.Identity())
+		[]string{"spawn:keyValue", "spawn:darc", "spawn:bvm", "invoke:update", "invoke:deployContract", "invoke:callMethod"}, out.signer.Identity())
 	require.Nil(t, err)
 	out.gDarc = &out.gMsg.GenesisDarc
 
@@ -141,7 +166,7 @@ func (bct *bcTest) createInstance(t *testing.T, args byzcoin.Arguments) byzcoin.
 	return ctx.Instructions[0].DeriveID("")
 }
 
-func (bct *bcTest) updateInstance(t *testing.T, instID byzcoin.InstanceID, args byzcoin.Arguments) {
+func (bct *bcTest) deployContractInstance(t *testing.T, instID byzcoin.InstanceID, args byzcoin.Arguments) {
 	ctx := byzcoin.ClientTransaction{
 		Instructions: []byzcoin.Instruction{{
 			InstanceID: instID,
@@ -162,5 +187,29 @@ func (bct *bcTest) updateInstance(t *testing.T, instID byzcoin.InstanceID, args 
 	// global state - first we must wait for the new block to be created.
 	var err error
 	_, err = bct.cl.AddTransactionAndWait(ctx, 10)
+	require.Nil(t, err)
+}
+
+func (bct *bcTest) methodCallInstance(t *testing.T, instID byzcoin.InstanceID, args byzcoin.Arguments) {
+	ctx := byzcoin.ClientTransaction{
+		Instructions: []byzcoin.Instruction{{
+			InstanceID: instID,
+			Nonce:      byzcoin.Nonce{},
+			Index:      0,
+			Length:     1,
+			Invoke: &byzcoin.Invoke{
+				Command: "callMethod",
+				Args:    args,
+			},
+		}},
+	}
+	// And we need to sign the instruction with the signer that has his
+	// public key stored in the darc.
+	require.Nil(t, ctx.Instructions[0].SignBy(bct.gDarc.GetBaseID(), bct.signer))
+
+	// Sending this transaction to ByzCoin does not directly include it in the
+	// global state - first we must wait for the new block to be created.
+	var err error
+	_, err = bct.cl.AddTransactionAndWait(ctx, 20)
 	require.Nil(t, err)
 }

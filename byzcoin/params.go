@@ -4,8 +4,9 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/big"
+
+	"github.com/dedis/onet/log"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -54,11 +55,12 @@ func GenerateKeys() (address common.Address, privateKey *ecdsa.PrivateKey) {
 }
 
 //LoadAccount creates an account and load it with ether
-func LoadAccount(db *state.StateDB) common.Address {
-	publicKey, _ := GenerateKeys()
-	db.SetBalance(publicKey, big.NewInt(1000000000000000000))
-	fmt.Println("Loaded account", publicKey.Hex(), "with one ether")
-	return publicKey
+func LoadAccount(db *state.StateDB, key common.Address) common.Address {
+	//publicKey, _ := GenerateKeys()
+	db.SetBalance(key, big.NewInt(1000000000000000000))
+	//fmt.Println("Loaded account", key.Hex(), "with one ether")
+	log.Lvl2("Loaded account", key.Hex(), "with one ether")
+	return key
 }
 
 //NewKeyFromECDSA :
