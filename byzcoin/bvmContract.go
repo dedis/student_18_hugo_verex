@@ -2,7 +2,6 @@ package byzcoin
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 	"strconv"
 	"strings"
@@ -45,10 +44,13 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 	if err != nil {
 		return
 	}
+	//Ethereum
+	publicKey := common.HexToAddress("0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61")
+	accountRef := vm.AccountRef(publicKey)
 
 	switch inst.GetType() {
 	case byzcoin.SpawnType:
-		fmt.Println("Spawning..")
+		log.LLvl1("Spawning..")
 		//var bvm *vm.EVM
 		memDBBuff := []byte{}
 		cs := NewContractStruct(inst.Spawn.Args)
@@ -81,25 +83,21 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			}
 			bvm, memDB := spawnEvm(memDB)
 			bytecode := inst.Invoke.Args[0].Name
-			accountRef := vm.AccountRef(common.HexToAddress("0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61"))
 
 			ret, contractAddress, _, err := bvm.Create(accountRef, common.Hex2Bytes(bytecode), 100000000, big.NewInt(0))
 			//fmt.Println("The mem db", memDB)
 			if err != nil {
-				fmt.Println("Contract deployment unsuccessful")
-				fmt.Println("Return of contract creation", common.Bytes2Hex(ret))
-				fmt.Println(err)
+				log.LLvl1("Contract deployment unsuccessful")
+				log.LLvl1("Return of contract creation", common.Bytes2Hex(ret))
+				log.LLvl1(err)
 			} else {
-				fmt.Println("- Successful contract deployment at", contractAddress.Hex())
+				log.LLvl1("- Successful contract deployment at", contractAddress.Hex())
 				//fmt.Println("- New contract address", contractAddress.Hex())
 			}
 			memDB.Dump()
 
 		case "callMethod":
-			fmt.Println("hey")
 
-			publicKey := common.HexToAddress("0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61")
-			accountRef := vm.AccountRef(publicKey)
 			memDBBuff := []byte{}
 			cs := NewContractStruct(inst.Invoke.Args)
 			memDBBuff, _ = protobuf.Encode(&cs)
@@ -110,19 +108,18 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			bvm, memDB := spawnEvm(memDB)
 			contractABI := inst.Invoke.Args[0].Name
 			methodCall := inst.Invoke.Args[1].Name
-			fmt.Println(methodCall)
+			log.LLvl1(methodCall)
 			addrContract := common.HexToAddress(inst.Invoke.Args[2].Name)
 			maxGas := inst.Invoke.Args[3].Name
 			u64, err := strconv.ParseUint(maxGas, 10, 64)
-			fmt.Println(methodCall)
-
+			log.LLvl1(methodCall)
 			abi, err := abi.JSON(strings.NewReader(contractABI))
 			if err != nil {
-				fmt.Println(err)
+				log.LLvl1(err)
 			}
 			create, err := abi.Pack(methodCall, big.NewInt(4096), publicKey)
 			if err != nil {
-				fmt.Println(err)
+				log.LLvl1(err)
 			}
 
 			_, _, err = bvm.Call(accountRef, addrContract, create, u64, big.NewInt(0))

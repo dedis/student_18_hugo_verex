@@ -19,7 +19,7 @@ type KeyValueData struct {
 	Storage []KeyValue
 }
 
-//ContractDeploymentData
+//ContractDeploymentData :
 type ContractDeploymentData struct {
 	gas uint64
 }

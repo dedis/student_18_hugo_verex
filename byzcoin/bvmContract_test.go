@@ -64,8 +64,6 @@ func TestEVMContract_Invoke_Create(t *testing.T) {
 
 }
 
-/*
-
 func TestEVMContract_Invoke_Call(t *testing.T) {
 	fmt.Println("Test of EVM invocation")
 	bct := newBCTest(t)
@@ -98,7 +96,7 @@ func TestEVMContract_Invoke_Call(t *testing.T) {
 	//fmt.Println("The values are", values1)
 	require.Nil(t, err)
 
-}*/
+}
 
 // bcTest is used here to provide some simple test structure for different
 // tests.
@@ -161,7 +159,7 @@ func (bct *bcTest) createInstance(t *testing.T, args byzcoin.Arguments) byzcoin.
 	// Sending this transaction to ByzCoin does not directly include it in the
 	// global state - first we must wait for the new block to be created.
 	var err error
-	_, err = bct.cl.AddTransaction(ctx)
+	_, err = bct.cl.AddTransactionAndWait(ctx, 20)
 	require.Nil(t, err)
 	return ctx.Instructions[0].DeriveID("")
 }
