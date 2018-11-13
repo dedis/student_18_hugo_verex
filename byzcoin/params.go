@@ -2,7 +2,6 @@ package byzcoin
 
 import (
 	"crypto/ecdsa"
-	"fmt"
 	"io/ioutil"
 	"math/big"
 
@@ -30,15 +29,15 @@ type Key struct {
 func getSmartContract(path string, nameOfContract string) (string, string) {
 	abi, err := ioutil.ReadFile(path + nameOfContract + "_sol_" + nameOfContract + ".abi")
 	if err != nil {
-		fmt.Println("Problem generating contract ABI")
+		log.LLvl1("Problem generating contract ABI")
 	} else {
-		fmt.Println("ABI generated")
+		log.LLvl1("ABI generated")
 	}
 	bin, err := ioutil.ReadFile(path + nameOfContract + "_sol_" + nameOfContract + ".bin")
 	if err != nil {
-		fmt.Println("Problem generating contract BIN")
+		log.LLvl1("Problem generating contract BIN")
 	} else {
-		fmt.Println("BIN generated")
+		log.LLvl1("BIN generated")
 	}
 	return string(abi), string(bin)
 }
@@ -46,7 +45,7 @@ func getSmartContract(path string, nameOfContract string) (string, string) {
 func GenerateKeys() (address common.Address, privateKey *ecdsa.PrivateKey) {
 	private, err := crypto.GenerateKey()
 	if err != nil {
-		fmt.Println(err)
+		log.LLvl1(err)
 	}
 	key := NewKeyFromECDSA(private)
 	address = key.Address

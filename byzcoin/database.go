@@ -36,6 +36,7 @@ type MemDatabase struct {
 //NewMemDatabase creates a new memory database
 func NewMemDatabase(data []byte) (*MemDatabase, error) {
 	DB := &MemDatabase{}
+
 	err := protobuf.Decode(data, DB)
 	if err != nil {
 		log.Lvl1("Error with memory database", err)

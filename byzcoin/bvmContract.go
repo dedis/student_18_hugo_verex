@@ -12,8 +12,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/dedis/protobuf"
-
 	"github.com/dedis/onet/log"
 
 	"github.com/dedis/cothority/byzcoin"
@@ -50,19 +48,21 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 
 	switch inst.GetType() {
 	case byzcoin.SpawnType:
-		log.LLvl1("Spawning..")
-		//var bvm *vm.EVM
-		memDBBuff := []byte{}
-		cs := NewContractStruct(inst.Spawn.Args)
-		memDBBuff, _ = protobuf.Encode(&cs)
-		memDB, er := NewMemDatabase(memDBBuff)
+		memDB, er := NewMemDatabase([]byte{})
 		if er != nil {
-			log.LLvl1("Problem generating DB")
+			log.LLvl1("problem generating DB")
 		}
-		_, memDB = spawnEvm(memDB)
-		//fmt.Println("The mem db", memDB)
+		pubBuf := inst.Spawn.Args.Search("publicKey")
+		if pubBuf == nil {
+			return nil, nil, errors.New("no public key provided")
+		}
+		log.LLvl1("evm was spawned correctly")
+		_, err = spawnEvm(memDB, common.HexToAddress(string(pubBuf)))
+		if err != nil {
+			return nil, nil, err
+		}
+
 		dbBuff, _ := memDB.Dump()
-		//fmt.Println("The db buffer", dbBuff)
 		instID := inst.DeriveID("")
 		scs = []byzcoin.StateChange{
 			byzcoin.NewStateChange(byzcoin.Create, instID, ContractBvmID, dbBuff, darcID),
@@ -74,62 +74,89 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 		switch inst.Invoke.Command {
 
 		case "deployContract":
-			memDBBuff := []byte{}
-			cs := NewContractStruct(inst.Invoke.Args)
-			memDBBuff, _ = protobuf.Encode(&cs)
-			memDB, er := NewMemDatabase(memDBBuff)
-			if er != nil {
-				log.LLvl1("Problem generating DB")
-			}
-			bvm, memDB := spawnEvm(memDB)
-			bytecode := inst.Invoke.Args[0].Name
-
-			ret, contractAddress, _, err := bvm.Create(accountRef, common.Hex2Bytes(bytecode), 100000000, big.NewInt(0))
-			//fmt.Println("The mem db", memDB)
+			memDB, err := NewMemDatabase(memDBBuff)
 			if err != nil {
-				log.LLvl1("Contract deployment unsuccessful")
-				log.LLvl1("Return of contract creation", common.Bytes2Hex(ret))
-				log.LLvl1(err)
-			} else {
-				log.LLvl1("- Successful contract deployment at", contractAddress.Hex())
-				//fmt.Println("- New contract address", contractAddress.Hex())
+				log.LLvl1("problem generating DB")
+				return nil, nil, err
 			}
-			memDB.Dump()
+			pubBuf := inst.Invoke.Args.Search("publicKey")
+			if pubBuf == nil {
+				return nil, nil, errors.New("no public key provided")
+			}
+			bvm, err := spawnEvm(memDB, common.HexToAddress(string(pubBuf)))
+			if err != nil {
+				log.LLvl1("problem generating EVM")
+				return nil, nil, err
+			}
+			bytecode := inst.Invoke.Args.Search("bytecode")
+			if bytecode == nil {
+				return nil, nil, errors.New("no bytecode provided")
+			}
+			_, contractAddress, _, err := bvm.Create(accountRef, bytecode, 100000000, big.NewInt(0))
+			if err != nil {
+				return nil, nil, err
+			}
+			log.LLvl1("successful contract deployment at", contractAddress.Hex())
+			dbBuf, err := memDB.Dump()
+			if err != nil {
+				return nil, nil, err
+			}
+			scs = []byzcoin.StateChange{
+				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
+			}
 
 		case "callMethod":
-
-			memDBBuff := []byte{}
-			cs := NewContractStruct(inst.Invoke.Args)
-			memDBBuff, _ = protobuf.Encode(&cs)
-			memDB, er := NewMemDatabase(memDBBuff)
-			if er != nil {
-				log.LLvl1("Problem generating DB")
-			}
-			bvm, memDB := spawnEvm(memDB)
-			contractABI := inst.Invoke.Args[0].Name
-			methodCall := inst.Invoke.Args[1].Name
-			log.LLvl1(methodCall)
-			addrContract := common.HexToAddress(inst.Invoke.Args[2].Name)
-			maxGas := inst.Invoke.Args[3].Name
-			u64, err := strconv.ParseUint(maxGas, 10, 64)
-			log.LLvl1(methodCall)
-			abi, err := abi.JSON(strings.NewReader(contractABI))
+			memDB, err := NewMemDatabase(memDBBuff)
 			if err != nil {
-				log.LLvl1(err)
+				return nil, nil, err
 			}
-			create, err := abi.Pack(methodCall, big.NewInt(4096), publicKey)
+			pubBuf := inst.Invoke.Args.Search("publicKey")
+			if pubBuf == nil {
+				return nil, nil, errors.New("no public key provided")
+			}
+			bvm, err := spawnEvm(memDB, common.HexToAddress(string(pubBuf)))
 			if err != nil {
-				log.LLvl1(err)
+				return nil, nil, err
 			}
-
-			_, _, err = bvm.Call(accountRef, addrContract, create, u64, big.NewInt(0))
+			contractAddressBuf := inst.Invoke.Args.Search("contractAddress")
+			if contractAddressBuf == nil {
+				log.LLvl1(err)
+				return nil, nil, err
+			}
+			abiBuf := inst.Invoke.Args.Search("abi")
+			if abiBuf == nil {
+				log.LLvl1(err)
+				return nil, nil, err
+			}
+			methodBuf := inst.Invoke.Args.Search("method")
+			if methodBuf == nil {
+				log.LLvl1(err)
+				return nil, nil, err
+			}
+			gasBuf := inst.Invoke.Args.Search("gas")
+			if gasBuf == nil {
+				log.LLvl1(err)
+				return nil, nil, err
+			}
+			addrContract := common.BytesToAddress(inst.Invoke.Args.Search("contractAddress"))
+			gas, err := strconv.ParseUint(string(gasBuf), 10, 64)
 			if err != nil {
-				log.LLvl1("Calling", methodCall, "failed")
-				log.LLvl1(err)
-			} else {
-				log.LLvl1("Successful", methodCall, "method call")
+				return nil, nil, err
 			}
+			abi, err := abi.JSON(strings.NewReader(string(abiBuf)))
+			if err != nil {
+				return nil, nil, err
+			}
+			create, err := abi.Pack(string(methodBuf), big.NewInt(45), common.BytesToAddress(contractAddressBuf))
+			if err != nil {
+				return nil, nil, err
+			}
+			_, _, err = bvm.Call(accountRef, addrContract, create, gas, big.NewInt(0))
+			if err != nil {
+				return nil, nil, err
 
+			}
+			log.LLvl1("Successful", string(methodBuf), "method call at address :", string(contractAddressBuf))
 		}
 
 		scs = []byzcoin.StateChange{
@@ -140,15 +167,5 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 
 	err = errors.New("didn't find any instructions")
 	return
-
-}
-
-//NewContractStruct :
-func NewContractStruct(args byzcoin.Arguments) KeyValueData {
-	cs := KeyValueData{}
-	for _, kv := range args {
-		cs.Storage = append(cs.Storage, KeyValue{kv.Name, kv.Value})
-	}
-	return cs
 
 }
