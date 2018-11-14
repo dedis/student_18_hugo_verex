@@ -53,12 +53,10 @@ func GenerateKeys() (address common.Address, privateKey *ecdsa.PrivateKey) {
 	return
 }
 
-//LoadAccount creates an account and load it with ether
-func LoadAccount(db *state.StateDB, key common.Address) common.Address {
-	//publicKey, _ := GenerateKeys()
-	db.SetBalance(key, big.NewInt(1000000000000000000))
-	//fmt.Println("Loaded account", key.Hex(), "with one ether")
-	log.Lvl2("Loaded account", key.Hex(), "with one ether")
+//CreditAccount creates an account and load it with ether
+func CreditAccount(db *state.StateDB, key common.Address, value int64) common.Address {
+	db.SetBalance(key, big.NewInt(1000000000000000000*value))
+	log.Lvl2("Loaded account", key.Hex(), "with ", value, " ether")
 	return key
 }
 

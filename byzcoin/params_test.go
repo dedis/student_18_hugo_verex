@@ -13,7 +13,7 @@ import (
 
 func TestTokenContract(t *testing.T) {
 	contractsPath := "/Users/hugo/student_18_hugo_verex/contracts/"
-	log.LLvl1("evm testing")
+	log.LLvl1("test: evm creation and function calls")
 	simpleAbi, simpleBin := getSmartContract(contractsPath, "ModifiedToken")
 	aPublicKey, _ := GenerateKeys()
 	bPublicKey, _ := GenerateKeys()
@@ -165,5 +165,4 @@ func TestTokenContract(t *testing.T) {
 		log.Lvl1("balance of ", aPublicKey.Hex(), " is ", common.Bytes2Hex(get11Calls))
 	}
 	log.LLvl1("contract calls passed")
-	log.LLvl1("end of evm testing")
 }

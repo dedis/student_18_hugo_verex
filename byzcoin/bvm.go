@@ -40,7 +40,7 @@ func spawnEvm(memDB *MemDatabase, publicKey common.Address) (*vm.EVM, error) {
 	canTransfer := returnCanTransfer()
 	transfer := returnTransfer()
 	gethash := returnGetHash()
-	LoadAccount(sdb, publicKey)
+	//CreditAccount(sdb, publicKey)
 	ctx := vm.Context{CanTransfer: canTransfer, Transfer: transfer, GetHash: gethash, Origin: publicKey, GasPrice: big.NewInt(1), Coinbase: publicKey, GasLimit: 10000000000, BlockNumber: big.NewInt(0), Time: big.NewInt(1), Difficulty: big.NewInt(1)}
 	bvm := vm.NewEVM(ctx, sdb, getChainConfig(), getVMConfig())
 	return bvm, nil
