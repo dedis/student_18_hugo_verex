@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
-
 	"github.com/ethereum/go-ethereum/core/vm"
+
+	"github.com/ethereum/go-ethereum/accounts/abi"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -48,20 +48,12 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 
 	switch inst.GetType() {
 	case byzcoin.SpawnType:
-		memDB, er := NewMemDatabase([]byte{})
-		if er != nil {
-			log.LLvl1("problem generating DB")
-		}
-		pubBuf := inst.Spawn.Args.Search("publicKey")
-		if pubBuf == nil {
-			return nil, nil, errors.New("no public key provided")
-		}
-		log.LLvl1("evm was spawned correctly")
-		_, err = spawnEvm(memDB, common.HexToAddress(string(pubBuf)))
+		memDB, _ := NewMemDatabase([]byte{})
 		if err != nil {
 			return nil, nil, err
 		}
-
+		log.LLvl1("evm was spawned correctly")
+		spawnEvm(memDB)
 		dbBuff, _ := memDB.Dump()
 		instID := inst.DeriveID("")
 		scs = []byzcoin.StateChange{
@@ -110,11 +102,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 				log.LLvl1("problem generating DB")
 				return nil, nil, err
 			}
-			pubBuf := inst.Invoke.Args.Search("publicKey")
-			if pubBuf == nil {
-				return nil, nil, errors.New("no public key provided")
-			}
-			bvm, err := spawnEvm(memDB, common.HexToAddress(string(pubBuf)))
+			bvm, err := spawnEvm(memDB)
 			if err != nil {
 				log.LLvl1("problem generating EVM")
 				return nil, nil, err
@@ -145,7 +133,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if pubBuf == nil {
 				return nil, nil, errors.New("no public key provided")
 			}
-			bvm, err := spawnEvm(memDB, common.HexToAddress(string(pubBuf)))
+			bvm, err := spawnEvm(memDB)
 			if err != nil {
 				return nil, nil, err
 			}

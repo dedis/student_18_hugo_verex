@@ -12,7 +12,7 @@ import (
 )
 
 func TestTokenContract(t *testing.T) {
-	contractsPath := "/Users/hugo/student_18_hugo_verex/contracts/"
+	contractsPath := "/Users/hugo/student_18_hugo_verex/contracts/testToken/"
 	log.LLvl1("test: evm creation and function calls")
 	simpleAbi, simpleBin := getSmartContract(contractsPath, "ModifiedToken")
 	aPublicKey, _ := GenerateKeys()
@@ -117,7 +117,7 @@ func TestTokenContract(t *testing.T) {
 		log.Lvl1("send unsuccessful")
 		log.Lvl1(err)
 	} else {
-		log.Lvl1("successful send from ", aPublicKey.Hex(), " to ", bPublicKey)
+		log.Lvl1("successful send from ", aPublicKey.Hex(), " to ", bPublicKey.Hex())
 	}
 	get1Call, leftOverGas, err := bvm.Call(accountRef, addrContract, get1, leftOverGas, big.NewInt(0))
 	if err != nil {
