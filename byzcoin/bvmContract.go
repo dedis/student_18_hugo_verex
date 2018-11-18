@@ -18,12 +18,7 @@ import (
 	"github.com/dedis/cothority/darc"
 )
 
-/*
-spawn: create a new EVM and initialize the database structure
-invoke:createAccount
-invoke:sendCommand
-invoke:mintCoins - send that many coins directly to the account, out of nowhere
-*/
+
 
 //ContractBvmID denotes a contract that can deploy and call an Ethereum virtual machine
 var ContractBvmID = "bvm"
@@ -42,8 +37,9 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 	if err != nil {
 		return
 	}
+
 	//Ethereum
-	publicKey := common.HexToAddress("0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61")
+	publicKey := common.HexToAddress("0x0000000000000000000000000000000000000000")
 	accountRef := vm.AccountRef(publicKey)
 
 	switch inst.GetType() {

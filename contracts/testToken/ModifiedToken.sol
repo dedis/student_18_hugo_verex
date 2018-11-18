@@ -2,17 +2,17 @@ pragma solidity ^0.4.20;
 
 contract ModifiedToken {
     /* This creates an array with all balances */
-    mapping (address => uint256) public balanceOf;
+    mapping (address => uint32) public balanceOf;
 
     /* Initializes contract with initial supply tokens to the creator of the contract */
     function create(
-        uint initialSupply,
+        uint32 initialSupply,
         address toGiveTo
         ) public {
         balanceOf[toGiveTo] = initialSupply; // Give the creator all initial tokens
     }
 
-    function send(address _from, address _to, uint _amount) public returns (bool){
+    function send(address _from, address _to, uint32 _amount) public returns (bool){
       if(balanceOf[_from]>= _amount && balanceOf[_to] + _amount >= balanceOf[_to]){
         balanceOf[_to] = balanceOf[_to] + _amount;
         balanceOf[_from] = balanceOf[_from] - _amount;
@@ -25,7 +25,7 @@ contract ModifiedToken {
 
 
     /* Send coins */
-    function transfer(address _from, address _to, uint256 _value) public returns (bool) {
+    function transfer(address _from, address _to, uint32 _value) public returns (bool) {
         require(balanceOf[_from] >= _value);                // Check if the sender has enough
         require(balanceOf[_to] + _value >= balanceOf[_to]); // Check for overflows
         balanceOf[_from] -= _value;                    // Subtract from the sender
@@ -33,7 +33,7 @@ contract ModifiedToken {
         return true;
     }
 
-    function getBalance(address account) public view returns (uint256){
+    function getBalance(address account) public view returns (uint32){
       return balanceOf[account];
     }
 }

@@ -1,6 +1,7 @@
 package byzcoin
 
 import (
+	"github.com/stretchr/testify/require"
 	"math/big"
 	"strings"
 	"testing"
@@ -12,157 +13,127 @@ import (
 )
 
 func TestTokenContract(t *testing.T) {
-	contractsPath := "/Users/hugo/student_18_hugo_verex/contracts/testToken/"
-	log.LLvl1("test: evm creation and function calls")
-	simpleAbi, simpleBin := getSmartContract(contractsPath, "ModifiedToken")
-	aPublicKey, _ := GenerateKeys()
-	bPublicKey, _ := GenerateKeys()
-	accountRef := vm.AccountRef(aPublicKey)
-	abi, err := abi.JSON(strings.NewReader(simpleAbi))
-	if err != nil {
-		log.Lvl1(err)
-	}
-	create, err := abi.Pack("create", big.NewInt(4096), aPublicKey)
-	if err != nil {
-		log.Lvl1(err)
-	}
-	get, err := abi.Pack("getBalance", aPublicKey)
-	if err != nil {
-		log.Lvl1(err)
-	}
-
-	send, err := abi.Pack("transfer", aPublicKey, bPublicKey, big.NewInt(16))
-	if err != nil {
-		log.Lvl1(err)
-	}
-
-	get1, err := abi.Pack("getBalance", bPublicKey)
-	if err != nil {
-		log.Lvl1(err)
-	}
-	get2, err := abi.Pack("getBalance", aPublicKey)
-	if err != nil {
-		log.Lvl1(err)
-	}
-
-	transferTests, err := abi.Pack("transfer", aPublicKey, bPublicKey, big.NewInt(16))
-	if err != nil {
-		log.Lvl1(err)
-	}
-
-	log.Lvl1("DB setup")
-	emptyData := []byte{}
-	memDb, _ := NewMemDatabase(emptyData)
-	sdb, _ := getDB(memDb)
-
 	canTransfer := func(vm.StateDB, common.Address, *big.Int) bool {
 		//log.Println("Verified transfer")
 		return true
 	}
 
 	transfer := func(vm.StateDB, common.Address, common.Address, *big.Int) {
-		log.Lvl1("tried to transfer")
+		log.Lvl3("tried to transfer")
 	}
 
 	gethash := func(uint64) common.Hash {
-		log.Lvl1("tried to get hash")
+		log.Lvl3("tried to get hash")
 		return common.HexToHash("0x0000000000000000000000000000000000000000")
 	}
 
-	sdb.SetBalance(aPublicKey, big.NewInt(1000000000000))
+	contractsPath := "/Users/hugo/student_18_hugo_verex/contracts/testToken/"
+	log.LLvl1("test: evm creation and function calls")
+	simpleAbi, simpleBin := getSmartContract(contractsPath, "ModifiedToken")
 
-	log.Lvl1("Setting up context")
+
+	aPublicKey := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	bPublicKey := common.HexToAddress("0x2222222222222222222222222222222222222222")
+
+	//aPublicKey, _ := GenerateKeys()
+	//bPublicKey, _ := GenerateKeys()
+
+	accountRef := vm.AccountRef(common.HexToAddress("0x0000000000000000000000000000000000000000"))
+
+
+	//Cration of abi object
+	abi, err := abi.JSON(strings.NewReader(simpleAbi))
+	require.Nil(t, err)
+	//Helper functions for contract call
+	create, err := abi.Pack("create", uint32(12), aPublicKey)
+	require.Nil(t, err)
+	get, err := abi.Pack("getBalance", aPublicKey)
+	require.Nil(t, err)
+	send, err := abi.Pack("transfer", aPublicKey, bPublicKey,uint32(1))
+	require.Nil(t, err)
+	get1, err := abi.Pack("getBalance", bPublicKey)
+	require.Nil(t, err)
+	get2, err := abi.Pack("getBalance", aPublicKey)
+	require.Nil(t, err)
+	transferTests, err := abi.Pack("transfer", aPublicKey, bPublicKey, uint32(1))
+	require.Nil(t, err)
+
+
+
+	//Various setups
+	log.Lvl3("DB setup")
+	emptyData := []byte{}
+	memDb, _ := NewMemDatabase(emptyData)
+	sdb, _ := getDB(memDb)
+	//sdb.SetBalance(aPublicKey, big.NewInt(1000000000000))
+	log.Lvl2("Setting up context")
 	ctx := vm.Context{CanTransfer: canTransfer, Transfer: transfer, GetHash: gethash, Origin: aPublicKey, GasPrice: big.NewInt(1), Coinbase: aPublicKey, GasLimit: 10000000000, BlockNumber: big.NewInt(0), Time: big.NewInt(1), Difficulty: big.NewInt(1)}
-
-	log.Lvl1("Setting up & checking VMs")
+	log.Lvl2("Setting up & checking VMs")
 	bvm := vm.NewEVM(ctx, sdb, getChainConfig(), getVMConfig())
-
 	bvmInterpreter := vm.NewEVMInterpreter(bvm, getVMConfig())
-
 	a := bvmInterpreter.CanRun(common.Hex2Bytes(simpleBin))
-
 	if !a {
 		log.Lvl1("Problem setting up VM")
 	}
+
+	//Contract deployment
 	log.LLvl1("contract creation")
-	ret, addrContract, leftOverGas, err := bvm.Create(accountRef, common.Hex2Bytes(simpleBin), 100000000, big.NewInt(0))
+	retContractCreation, addrContract, leftOverGas, err := bvm.Create(accountRef, common.Hex2Bytes(simpleBin), 100000000, big.NewInt(0))
 	if err != nil {
 		log.LLvl1("contract deployment unsuccessful")
-		log.LLvl1("return of contract creation", common.Bytes2Hex(ret))
+		log.LLvl1("return of contract creation", common.Bytes2Hex(retContractCreation))
 		log.Lvl1(err)
-	} else {
-		log.LLvl1("successful contract deployment")
-		log.LLvl1("new contract address", addrContract.Hex())
 	}
+	log.LLvl1("successful contract deployment")
+	log.LLvl1("new contract address", addrContract.Hex())
 
+	//Actual function calls using helpers defined above
 	log.LLvl1("some contract calls")
-	_, leftOverGas, err = bvm.Call(accountRef, addrContract, create, leftOverGas, big.NewInt(0))
-	if err != nil {
-		log.LLvl1("token creation unsuccessful")
-		log.LLvl1(err)
-	} else {
-		log.Lvl1("successful token creation")
-	}
-	getCall, leftOverGas, err := bvm.Call(accountRef, addrContract, get, leftOverGas, big.NewInt(0))
-	if err != nil {
-		log.Lvl1("get unsuccessful")
-		log.Lvl1(err)
-	} else {
-		log.Lvl1("successful balance fetch")
-		log.Lvl1("the balance of : ", aPublicKey.Hex(), " is ", common.Bytes2Hex(getCall))
-	}
 
-	_, leftOverGas, err = bvm.Call(accountRef, addrContract, send, leftOverGas, big.NewInt(0))
-	if err != nil {
-		log.Lvl1("send unsuccessful")
-		log.Lvl1(err)
-	} else {
-		log.Lvl1("successful send from ", aPublicKey.Hex(), " to ", bPublicKey.Hex())
-	}
-	get1Call, leftOverGas, err := bvm.Call(accountRef, addrContract, get1, leftOverGas, big.NewInt(0))
-	if err != nil {
-		log.Lvl1("get unsuccessful")
-		log.Lvl1(err)
-		log.Lvl1("left over gas : ", leftOverGas)
-	} else {
-		log.Lvl1(("successful balance fetch"))
-		log.Lvl1("the balance of :", bPublicKey.Hex(), " is ", common.Bytes2Hex(get1Call))
-	}
-	get11Calls, leftOverGas, err := bvm.Call(accountRef, addrContract, get2, leftOverGas, big.NewInt(0))
-	if err != nil {
-		log.Lvl1("get unsuccessful")
-		log.Lvl1("Left over gas : ", leftOverGas)
-		log.Lvl1(err)
-	} else {
-		log.Lvl1("successful balance fetch")
-		log.Lvl1("balance of ", aPublicKey.Hex(), " is ", common.Bytes2Hex(get11Calls))
-	}
+	//Call to constructor of contract
+	_, _, err = bvm.Call(accountRef, addrContract, create, leftOverGas, big.NewInt(0))
+	require.Nil(t, err)
+	log.Lvl3("successful token creation")
 
-	_, leftOverGas, err = bvm.Call(accountRef, addrContract, transferTests, leftOverGas, big.NewInt(0))
-	if err != nil {
-		log.Lvl1("transfer unsuccessful")
-		log.Lvl1("left over gas : ", leftOverGas)
-		log.Lvl1(err)
-	} else {
-		log.Lvl1("successful transfer")
-	}
-	get1Call, leftOverGas, err = bvm.Call(accountRef, addrContract, get1, leftOverGas, big.NewInt(0))
-	if err != nil {
-		log.Lvl1("get unsuccessful")
-		log.Lvl1(err)
-		log.Lvl1("leftover gas : ", leftOverGas)
-	} else {
-		log.Lvl1("successful balance fetch")
-		log.Lvl1("the balance of :", bPublicKey.Hex(), " is ", common.Bytes2Hex(get1Call))
-	}
-	get11Calls, leftOverGas, err = bvm.Call(accountRef, addrContract, get2, leftOverGas, big.NewInt(0))
-	if err != nil {
-		log.Lvl1("get unsuccessful")
-		log.Lvl1("Left over gas : ", leftOverGas)
-		log.Lvl1(err)
-	} else {
-		log.Lvl1("successful balance fetch")
-		log.Lvl1("balance of ", aPublicKey.Hex(), " is ", common.Bytes2Hex(get11Calls))
-	}
+	//Checking if the account specified received all the tokens
+	retBalanceOfAccountA, _, err := bvm.Call(accountRef, addrContract, get, leftOverGas, big.NewInt(0))
+	require.Nil(t, err)
+	log.Lvl3("successful balance fetch")
+	log.Lvl1("the balance of : ", aPublicKey.Hex(), " is ", retBalanceOfAccountA)
+
+	//Sending a token from A to B
+	_, _, err = bvm.Call(accountRef, addrContract, send, leftOverGas, big.NewInt(0))
+	require.Nil(t, err)
+	log.Lvl1("successful send from ", aPublicKey.Hex(), " to ", bPublicKey.Hex())
+
+	//Checking balance of account B
+	retBalanceOfAccountB, _, err := bvm.Call(accountRef, addrContract, get1, leftOverGas, big.NewInt(0))
+	require.Nil(t, err)
+	log.Lvl3(("successful balance fetch"))
+	log.Lvl1("the balance of :", bPublicKey.Hex(), " is ", retBalanceOfAccountB)
+
+	//Checking if the other account was updated accordingly
+	retBalanceOfAccountA, _, err = bvm.Call(accountRef, addrContract, get2, leftOverGas, big.NewInt(0))
+	require.Nil(t, err)
+	log.Lvl3("successful balance fetch")
+	log.Lvl1("balance of ", aPublicKey.Hex(), " is ", retBalanceOfAccountA)
+
+	//Trying to transfer
+	_, _, err = bvm.Call(accountRef, addrContract, transferTests, leftOverGas, big.NewInt(0))
+	require.Nil(t, err)
+	log.Lvl1("successful transfer")
+
+	retBalanceOfAccountB, _, err = bvm.Call(accountRef, addrContract, get1, leftOverGas, big.NewInt(0))
+	require.Nil(t, err)
+	log.Lvl3("successful balance fetch")
+	log.Lvl1("the balance of :", bPublicKey.Hex(), " is ", retBalanceOfAccountB)
+
+	retBalanceOfAccountA, _, err = bvm.Call(accountRef, addrContract, get2, leftOverGas, big.NewInt(0))
+	require.Nil(t, err)
+	log.Lvl1("successful balance fetch")
+	log.Lvl1("balance of ", aPublicKey.Hex(), " is ", retBalanceOfAccountA)
 	log.LLvl1("contract calls passed")
 }
+
+
+
