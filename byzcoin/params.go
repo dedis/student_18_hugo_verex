@@ -1,7 +1,6 @@
 package byzcoin
 
 import (
-	"crypto/ecdsa"
 	"io/ioutil"
 	"math/big"
 
@@ -10,20 +9,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/pborman/uuid"
 )
-
-//Key creation from Ethereum library
-type Key struct {
-	Id uuid.UUID // Version 4 "random" for unique id not derived from key data
-	// to simplify lookups we also store the address
-	Address common.Address
-	// we only store privkey as pubkey/address can be derived from it
-	// privkey in this struct is always in plaintext
-	PrivateKey *ecdsa.PrivateKey
-}
 
 //returns abi and bytecode of solidity contract
 func getSmartContract(path string, nameOfContract string) (string, string) {
@@ -40,35 +27,6 @@ func getSmartContract(path string, nameOfContract string) (string, string) {
 		log.LLvl1("BIN generated")
 	}
 	return string(abi), string(bin)
-}
-
-func GenerateKeys() (address common.Address, privateKey *ecdsa.PrivateKey) {
-	private, err := crypto.GenerateKey()
-	if err != nil {
-		log.LLvl1(err)
-	}
-	key := NewKeyFromECDSA(private)
-	address = key.Address
-	privateKey = key.PrivateKey
-	return
-}
-
-//CreditAccount creates an account and load it with ether
-func CreditAccount(db *state.StateDB, key common.Address, value int64) common.Address {
-	db.SetBalance(key, big.NewInt(1000000000000000000*value))
-	log.Lvl2("Loaded account", key.Hex(), "with ", value, " ether")
-	return key
-}
-
-//NewKeyFromECDSA :
-func NewKeyFromECDSA(privateKeyECDSA *ecdsa.PrivateKey) *Key {
-	id := uuid.NewRandom()
-	key := &Key{
-		Id:         id,
-		Address:    crypto.PubkeyToAddress(privateKeyECDSA.PublicKey),
-		PrivateKey: privateKeyECDSA,
-	}
-	return key
 }
 
 func getChainConfig() *params.ChainConfig {
@@ -117,26 +75,15 @@ func getVMConfig() vm.Config {
 	return *vmconfig
 }
 
-func getDB(memDb *MemDatabase) (*state.StateDB, error) {
-	db := state.NewDatabase(memDb)
-	//Creates a new state DB
-	sdb, err := state.New(common.HexToHash("0x0000000000000000000000000000000000000000"), db)
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	}
-	return sdb, err
-}
-
 func returnCanTransfer() func(vm.StateDB, common.Address, *big.Int) bool {
 	canTransfer := func(vm.StateDB, common.Address, *big.Int) bool {
-		//log.Println("Verified transfer")
 		return true
 	}
 	return canTransfer
 }
+
 func returnTransfer() func(vm.StateDB, common.Address, common.Address, *big.Int) {
 	transfer := func(vm.StateDB, common.Address, common.Address, *big.Int) {
-		//log.Println("tried to transfer")
 	}
 	return transfer
 }
@@ -150,16 +97,39 @@ func returnGetHash() func(uint64) common.Hash {
 
 }
 
+func getContext() vm.Context {
+	placeHolder := common.HexToAddress("0x0000000000000000000000000000000000000000")
+	return vm.Context{
+		CanTransfer: returnCanTransfer(),
+		Transfer: returnTransfer(),
+		GetHash: returnGetHash(),
+		Origin: placeHolder,
+		GasPrice: big.NewInt(1),
+		Coinbase: placeHolder,
+		GasLimit: 10000000000,
+		BlockNumber: big.NewInt(0),
+		Time: big.NewInt(1),
+		Difficulty: big.NewInt(1),
+	}
+
+}
+
+func getDB(memDb *MemDatabase) (*state.StateDB, error) {
+	db := state.NewDatabase(memDb)
+	//Creates a new state DB
+	sdb, err := state.New(common.HexToHash("0x0000000000000000000000000000000000000000"), db)
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+	}
+	return sdb, err
+}
+
+
 func spawnEvm(memDB *MemDatabase) (*vm.EVM, error) {
 	sdb, err := getDB(memDB)
 	if err != nil {
 		return nil, err
 	}
-	canTransfer := returnCanTransfer()
-	transfer := returnTransfer()
-	gethash := returnGetHash()
-	placeHolder := common.HexToAddress("0x0000000000000000000000000000000000000000")
-	ctx := vm.Context{CanTransfer: canTransfer, Transfer: transfer, GetHash: gethash, Origin: placeHolder, GasPrice: big.NewInt(1), Coinbase: placeHolder, GasLimit: 10000000000, BlockNumber: big.NewInt(0), Time: big.NewInt(1), Difficulty: big.NewInt(1)}
-	bvm := vm.NewEVM(ctx, sdb, getChainConfig(), getVMConfig())
+	bvm := vm.NewEVM(getContext(), sdb, getChainConfig(), getVMConfig())
 	return bvm, nil
 }

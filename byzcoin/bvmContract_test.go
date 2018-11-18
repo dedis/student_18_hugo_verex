@@ -45,28 +45,6 @@ func TestEVMContract_Spawn(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestEVMContract_Invoke_Credit(t *testing.T) {
-	log.LLvl1("test: credit of account ")
-	bct := newBCTest(t)
-	defer bct.Close()
-	publicKey := []byte("0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61")
-	value := []byte("1")
-	args := byzcoin.Arguments{
-		{
-			Name:  "publicKey",
-			Value: publicKey,
-		}, {
-			Name:  "value",
-			Value: value,
-		},
-	}
-	instID := bct.createInstance(t, args)
-	// Wait for the proof to be available.
-	_, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
-	require.Nil(t, err)
-	bct.creditAccount(t, instID, args)
-}
-
 func TestEVMContract_Invoke_Deploy(t *testing.T) {
 	log.LLvl1("test: deploy a contract")
 	bct := newBCTest(t)
@@ -158,7 +136,7 @@ func newBCTest(t *testing.T) (out *bcTest) {
 	// to create and update keyValue contracts.
 	var err error
 	out.gMsg, err = byzcoin.DefaultGenesisMsg(byzcoin.CurrentVersion, out.roster,
-		[]string{"spawn:keyValue", "spawn:darc", "spawn:bvm", "invoke:creditAccount", "invoke:deployContract", "invoke:callMethod"}, out.signer.Identity())
+		[]string{"spawn:keyValue", "spawn:darc", "spawn:bvm", "invoke:deployContract", "invoke:callMethod"}, out.signer.Identity())
 	require.Nil(t, err)
 	out.gDarc = &out.gMsg.GenesisDarc
 

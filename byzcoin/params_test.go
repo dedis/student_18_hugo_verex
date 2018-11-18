@@ -13,6 +13,7 @@ import (
 )
 
 func TestTokenContract(t *testing.T) {
+
 	canTransfer := func(vm.StateDB, common.Address, *big.Int) bool {
 		//log.Println("Verified transfer")
 		return true
@@ -87,8 +88,9 @@ func TestTokenContract(t *testing.T) {
 	log.LLvl1("successful contract deployment")
 	log.LLvl1("new contract address", addrContract.Hex())
 
-	//Actual function calls using helpers defined above
-	log.LLvl1("some contract calls")
+	//Contract calls
+	log.Lvl3("Contract calls")
+
 
 	//Call to constructor of contract
 	_, _, err = bvm.Call(accountRef, addrContract, create, leftOverGas, big.NewInt(0))

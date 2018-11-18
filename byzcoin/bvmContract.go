@@ -60,38 +60,6 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 	case byzcoin.InvokeType:
 		//create db out of csbuf
 		switch inst.Invoke.Command {
-		case "creditAccount":
-			memDB, err := NewMemDatabase(memDBBuff)
-			if err != nil {
-				log.LLvl1("problem generating DB")
-				return nil, nil, err
-			}
-			pubBuf := inst.Invoke.Args.Search("publicKey")
-			if pubBuf == nil {
-				return nil, nil, errors.New("no public key provided")
-			}
-			valueBuf := inst.Invoke.Args.Search("value")
-			if valueBuf == nil {
-				return nil, nil, err
-			}
-			value, err := strconv.ParseInt(string(valueBuf), 10, 64)
-			if err != nil {
-				return nil, nil, err
-			}
-			db, err := getDB(memDB)
-			if err != nil {
-				return nil, nil, err
-			}
-			CreditAccount(db, common.BytesToAddress(pubBuf), value)
-			log.LLvl1("credited account", string(pubBuf), " with ", value, " eth")
-			dbBuf, err := memDB.Dump()
-			if err != nil {
-				return nil, nil, err
-			}
-			scs = []byzcoin.StateChange{
-				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
-			}
-
 		case "deployContract":
 			memDB, err := NewMemDatabase(memDBBuff)
 			if err != nil {
