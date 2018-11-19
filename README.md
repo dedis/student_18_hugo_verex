@@ -6,7 +6,7 @@ Verex is an experimental library to deploy solidity smart contracts on the [Byzc
 
 
 
-#### Prerequisites
+### Prerequisites
 This tool requires a solidity and a go compiler.
 
 **Go compiler** :
