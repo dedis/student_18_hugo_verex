@@ -66,20 +66,67 @@ func TestEVMContract_Invoke_Deploy(t *testing.T) {
 
 }
 
+
 func TestEVMContract_Invoke_Call(t *testing.T) {
 	log.LLvl1("test: call a contract")
 	bct := newBCTest(t)
 	defer bct.Close()
+	args := byzcoin.Arguments{}
+	instID := bct.createInstance(t, args)
+	// Wait for the proof to be available.
+	pr1, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
+	_, _, err = pr1.KeyValue()
+	require.Nil(t, err)
+	args = getArgsForCreate()
+	bct.methodCallInstance(t, instID, args)
+	require.Nil(t, err)
+	/*
+	args = getArgsForTransfer()
+	bct.methodCallInstance(t, instID, args)
+	require.Nil(t, err)*/
+
+}
+
+func getArgsForCreate() byzcoin.Arguments {
 	abi := []byte(`[{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_amount","type":"uint256"}],"name":"send","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"initialSupply","type":"uint256"},{"name":"toGiveTo","type":"address"}],"name":"create","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"account","type":"address"}],"name":"getBalance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}]`)
 	methodName := []byte("create")
-	contractAddress := []byte("0x45663483f58d687c8aF17B85cCCDD9391b567498")
-	gas := []byte("10000000000")
-	publicKey := []byte("0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61")
+	contractAddress := []byte("0xBd770416a3345F91E4B34576cb804a576fa48EB1")
+	publicKey := []byte("0x1111111111111111111111111111111111111111")
+	initialSupply := []byte("21000000")
+
 	args := byzcoin.Arguments{
 		{
-			Name:  "publicKey",
+			Name:  "contractAddress",
+			Value: contractAddress,
+		},
+		{
+			Name:  "abi",
+			Value: abi,
+		},
+		{
+			Name:  "method",
+			Value: methodName,
+		},
+		{
+			Name: "initialSupply",
+			Value: initialSupply,
+		},
+		{
+			Name: "from",
 			Value: publicKey,
 		},
+
+	}
+	return args
+}
+
+func getArgsForTransfer() byzcoin.Arguments{
+	abi := []byte(`[{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_amount","type":"uint256"}],"name":"send","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"initialSupply","type":"uint256"},{"name":"toGiveTo","type":"address"}],"name":"create","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"account","type":"address"}],"name":"getBalance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}]`)
+	methodName := []byte("transfer")
+	contractAddress := []byte("0xBd770416a3345F91E4B34576cb804a576fa48EB1")
+	aPublicKey := []byte("0x1111111111111111111111111111111111111111")
+	bPublicKey := []byte("0x2222222222222222222222222222222222222222")
+	args := byzcoin.Arguments{
 		{
 			Name:  "abi",
 			Value: abi,
@@ -93,20 +140,19 @@ func TestEVMContract_Invoke_Call(t *testing.T) {
 			Value: contractAddress,
 		},
 		{
-			Name:  "gas",
-			Value: gas,
+			Name: "from",
+			Value: aPublicKey,
 		},
-	}
-	instID := bct.createInstance(t, args)
-	// Wait for the proof to be available.
-	pr1, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
-	_, _, err = pr1.KeyValue()
-	require.Nil(t, err)
+		{
+			Name: "to",
+			Value: bPublicKey,
+		},
 
-	bct.methodCallInstance(t, instID, args)
-	require.Nil(t, err)
+	}
+	return args
 
 }
+
 
 // bcTest is used here to provide some simple test structure for different
 // tests.
