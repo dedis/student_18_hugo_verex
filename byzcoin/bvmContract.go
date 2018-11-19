@@ -3,7 +3,6 @@ package byzcoin
 import (
 	"errors"
 	"math/big"
-	"strconv"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -43,6 +42,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 	accountRef := vm.AccountRef(publicKey)
 
 	switch inst.GetType() {
+
 	case byzcoin.SpawnType:
 		memDB, _ := NewMemDatabase([]byte{})
 		if err != nil {
@@ -58,7 +58,6 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 		return
 
 	case byzcoin.InvokeType:
-		//create db out of csbuf
 		switch inst.Invoke.Command {
 		case "deployContract":
 			memDB, err := NewMemDatabase(memDBBuff)
@@ -87,17 +86,8 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			scs = []byzcoin.StateChange{
 				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
 			}
-
 		case "callMethod":
 			memDB, err := NewMemDatabase(memDBBuff)
-			if err != nil {
-				return nil, nil, err
-			}
-			pubBuf := inst.Invoke.Args.Search("publicKey")
-			if pubBuf == nil {
-				return nil, nil, errors.New("no public key provided")
-			}
-			bvm, err := spawnEvm(memDB)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -116,16 +106,15 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 				log.LLvl1(err)
 				return nil, nil, err
 			}
-			gasBuf := inst.Invoke.Args.Search("gas")
-			if gasBuf == nil {
-				log.LLvl1(err)
-				return nil, nil, err
+			pubBuf := inst.Invoke.Args.Search("publicKey")
+			if pubBuf == nil {
+				return nil, nil, errors.New("no public key provided")
 			}
-			addrContract := common.BytesToAddress(inst.Invoke.Args.Search("contractAddress"))
-			gas, err := strconv.ParseUint(string(gasBuf), 10, 64)
+			bvm, err := spawnEvm(memDB)
 			if err != nil {
 				return nil, nil, err
 			}
+			addrContract := common.BytesToAddress(inst.Invoke.Args.Search("contractAddress"))
 			abi, err := abi.JSON(strings.NewReader(string(abiBuf)))
 			if err != nil {
 				return nil, nil, err
@@ -134,14 +123,20 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if err != nil {
 				return nil, nil, err
 			}
-			_, _, err = bvm.Call(accountRef, addrContract, create, gas, big.NewInt(0))
+			_, _, err = bvm.Call(accountRef, addrContract, create, 100000000, big.NewInt(0))
 			if err != nil {
 				return nil, nil, err
 
 			}
 			log.LLvl1("Successful", string(methodBuf), "method call at address :", string(contractAddressBuf))
+			dbBuf, err := memDB.Dump()
+			if err != nil {
+				return nil, nil, err
+			}
+			scs = []byzcoin.StateChange{
+				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
+			}
 		}
-
 		scs = []byzcoin.StateChange{
 			byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, memDBBuff, darcID),
 		}

@@ -24,11 +24,7 @@ func TestEVMContract_Spawn(t *testing.T) {
 	bct := newBCTest(t)
 	defer bct.Close()
 	// Create a new empty instance
-	publicKey := common.Hex2Bytes("0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61")
-	args := byzcoin.Arguments{{
-		Name:  "publicKey",
-		Value: publicKey,
-	}}
+	args := byzcoin.Arguments{}
 	// And send it to the ledger.
 	instID := bct.createInstance(t, args)
 	// Wait for the proof to be available.
@@ -178,30 +174,6 @@ func (bct *bcTest) createInstance(t *testing.T, args byzcoin.Arguments) byzcoin.
 	return ctx.Instructions[0].DeriveID("")
 }
 
-func (bct *bcTest) creditAccount(t *testing.T, instID byzcoin.InstanceID, args byzcoin.Arguments) {
-	ctx := byzcoin.ClientTransaction{
-		Instructions: []byzcoin.Instruction{{
-			InstanceID: instID,
-			Nonce:      byzcoin.Nonce{},
-			Index:      0,
-			Length:     1,
-			Invoke: &byzcoin.Invoke{
-				Command: "creditAccount",
-				Args:    args,
-			},
-		}},
-	}
-
-	// And we need to sign the instruction with the signer that has his
-	// public key stored in the darc.
-	require.Nil(t, ctx.Instructions[0].SignBy(bct.gDarc.GetBaseID(), bct.signer))
-
-	// Sending this transaction to ByzCoin does not directly include it in the
-	// global state - first we must wait for the new block to be created.
-	var err error
-	_, err = bct.cl.AddTransactionAndWait(ctx, 10)
-	require.Nil(t, err)
-}
 
 func (bct *bcTest) deployContractInstance(t *testing.T, instID byzcoin.InstanceID, args byzcoin.Arguments) {
 	ctx := byzcoin.ClientTransaction{

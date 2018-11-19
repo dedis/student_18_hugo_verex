@@ -104,7 +104,7 @@ func getContext() vm.Context {
 		Transfer: returnTransfer(),
 		GetHash: returnGetHash(),
 		Origin: placeHolder,
-		GasPrice: big.NewInt(1),
+		GasPrice: big.NewInt(0),
 		Coinbase: placeHolder,
 		GasLimit: 10000000000,
 		BlockNumber: big.NewInt(0),
