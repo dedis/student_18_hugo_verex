@@ -178,7 +178,7 @@ func newBCTest(t *testing.T) (out *bcTest) {
 	// to create and update keyValue contracts.
 	var err error
 	out.gMsg, err = byzcoin.DefaultGenesisMsg(byzcoin.CurrentVersion, out.roster,
-		[]string{"spawn:keyValue", "spawn:darc", "spawn:bvm", "invoke:deployContract", "invoke:callMethod"}, out.signer.Identity())
+		[]string{"spawn:keyValue", "spawn:darc", "spawn:bvm", "invoke:deploy", "invoke:call"}, out.signer.Identity())
 	require.Nil(t, err)
 	out.gDarc = &out.gMsg.GenesisDarc
 
@@ -229,7 +229,7 @@ func (bct *bcTest) deployContractInstance(t *testing.T, instID byzcoin.InstanceI
 			Index:      0,
 			Length:     1,
 			Invoke: &byzcoin.Invoke{
-				Command: "deployContract",
+				Command: "deploy",
 				Args:    args,
 			},
 		}},
@@ -254,7 +254,7 @@ func (bct *bcTest) methodCallInstance(t *testing.T, instID byzcoin.InstanceID, a
 			Index:      0,
 			Length:     1,
 			Invoke: &byzcoin.Invoke{
-				Command: "callMethod",
+				Command: "call",
 				Args:    args,
 			},
 		}},

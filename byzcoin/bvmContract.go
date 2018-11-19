@@ -60,7 +60,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 
 	case byzcoin.InvokeType:
 		switch inst.Invoke.Command {
-		case "deployContract":
+		case "deploy":
 			memDB, err := NewMemDatabase(memDBBuff)
 			if err != nil {
 				log.LLvl1("problem generating DB")
@@ -87,12 +87,12 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			scs = []byzcoin.StateChange{
 				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
 			}
-		case "callMethod":
+		case "call":
 			memDB, err := NewMemDatabase(memDBBuff)
 			if err != nil {
 				return nil, nil, err
 			}
-			//Instantiation of EVM
+			//Instantiation of BVM
 			bvm, err := spawnEvm(memDB)
 			if err != nil {
 				return nil, nil, err

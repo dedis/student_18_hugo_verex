@@ -2,17 +2,50 @@
 
 ## Overview
 
-Verex is an experimental library to deploy solidity smart contracts on the byzcoin ledger.
+Verex is an experimental library to deploy solidity smart contracts on the [Byzcoin](https://github.com/dedis/cothority/tree/master/byzcoin) ledger.
 
+
+
+#### Prerequisites
+This tool requires a solidity and a go compiler.
+
+**Go compiler** :
+
+OSX :
+
+`brew install go`
+
+Ubuntu : 
+
+`sudo apt-get install golang-go`
+
+**Solidity compiler** :
+
+using npm
+
+`npm install -g solc`
 
 ## Installation
 
 ```
 $ git clone https://github.com/dedis/student_18_hugo_verex
 //...
+
 $ cd student_18_hugo_verex/byzcoin
-$ go build && go test
+$ go build
 ```
+
+## Test 
+
+The current tests will deploy and call the `ModifiedToken.sol` contract.
+
+`go test -run Spawn` will test spawning a byzcoin ledger
+
+`go test -run Invoke_Deploy` will test deploying the contract
+
+`go test -run Invoke_Call` will test the minting of new tokens from the above contract
+
+
 
 
 

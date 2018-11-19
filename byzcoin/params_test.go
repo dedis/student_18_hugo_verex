@@ -28,7 +28,7 @@ func TestTokenContract(t *testing.T) {
 		return common.HexToHash("0x0000000000000000000000000000000000000000")
 	}
 
-	contractsPath := "/Users/hugo/student_18_hugo_verex/contracts/testToken/"
+	contractsPath := "/Users/hugo/student_18_hugo_verex/contracts/ModifiedToken/"
 	log.LLvl1("test: evm creation and function calls")
 	simpleAbi, simpleBin := getSmartContract(contractsPath, "ModifiedToken")
 
