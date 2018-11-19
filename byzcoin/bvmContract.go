@@ -135,6 +135,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 
 //createArgumentParser creates a transaction for the create method of modifiedToken
 func createArgumentParser(inst byzcoin.Instruction) (abiPack []byte, contractAddress []byte,  err error) {
+	return generalArgsParser(inst)
 	//log.LLvl1("Parsing arguments for create method")
 	arguments := inst.Invoke.Args
 	if len(arguments)<3{
@@ -168,16 +169,6 @@ func createArgumentParser(inst byzcoin.Instruction) (abiPack []byte, contractAdd
 	if err!=nil {
 		return nil, nil , err
 	}
-	log.LLvl1("ABI DISSECTING")
-	log.LLvl1(abi.Methods["create"].Inputs)
-	log.LLvl1(abi.Methods["balanceOf"].Inputs)
-	log.LLvl1("unicorn", abi.Methods["unicorn"])
-
-	log.LLvl1("size of args",len(abi.Methods["create"].Inputs))
-
-	log.LLvl1(reflect.TypeOf(abi.Methods["create"]))
-	log.LLvl1(abi.Constructor.Inputs)
-
 	transaction, err := abi.Pack(string(methodBuf), initialSupply, common.BytesToAddress(fromBuf))
 	return transaction, contractAddressBuf, nil
 }
@@ -236,7 +227,7 @@ func argumentParser(inst byzcoin.Instruction) (abiPack []byte, contractAddress [
 
 
 func generalArgsParser(inst byzcoin.Instruction) (abiPack []byte, contractAddress []byte,  err error){
-
+	
 	arguments := inst.Invoke.Args
 	if len(arguments)<3{
 		log.LLvl1("Please provide at least a contract address, the contract abi and the method name.")
@@ -259,38 +250,59 @@ func generalArgsParser(inst byzcoin.Instruction) (abiPack []byte, contractAddres
 		log.LLvl1(err)
 		return nil, nil, err
 	}
+	methodName := string(methodBuf)
+	log.LLvl1("Parsing of ", methodName, " arguments")
 	abi, err := abi.JSON(strings.NewReader(string(abiBuf)))
 	if err != nil {
 		return  nil, nil, err
 	}
+	switch len(abi.Methods[methodName].Inputs) {
+		case 1:
+			log.LLvl1("one argument")
+			arg0 := abi.Methods[methodName].Inputs[0]
+			log.LLvl1(arg0.Type)
+
+		case 2:
+			log.LLvl1("two arguments")
+			input0 := abi.Methods[methodName].Inputs[0]
+			input1 := abi.Methods[methodName].Inputs[1]
+			log.LLvl1(reflect.TypeOf(input0))
+			log.LLvl1("We have", input0.Name, input0.Type)
+			log.LLvl1("We have", input1.Name, input1.Type)
+
+			arg0 := inst.Invoke.Args.Search(input0.Name)
+			arg1 := inst.Invoke.Args.Search(input1.Name)
+			log.LLvl1("type in string format?",input0.Type.String())
 
 
-	var leftLength = len(arguments) - 3
-	log.LLvl1(leftLength)
-	leftArgsBuf := make([][]byte, leftLength)
-	log.LLvl1(reflect.TypeOf(leftArgsBuf))
-	leftArgsType := make([]string, leftLength)
 
-	for i:=0; i<leftLength; i++ {
-		log.LLvl1(i)
-		leftArgsBuf[i] = arguments[3+i].Value
-		log.LLvl1("argument buffer", leftArgsBuf)
-		typeOfArg := arguments[3+i].Name
-		log.LLvl1(typeOfArg)
-		s := strings.Split(typeOfArg, ":")
-		log.LLvl1(s)
-		_, argType := s[0], s[1]
-		leftArgsType[i] = argType
-		log.LLvl1("We have the value", leftArgsBuf[i], " which is ", argType)
+			log.LLvl1(byteSliceToAllConverter(arg0, input0.Type))
+			log.LLvl1(arg1)
 
+
+
+	
 	}
-	fromBuf := []byte{}
-	initialSupply := 0
-
-	common.BytesToAddress(fromBuf)
-	transaction, err := abi.Pack(string(methodBuf), initialSupply)
-	log.LLvl1(transaction)
 
 
-	return transaction, contractAddressBuf, nil
+	//common.BytesToAddress(fromBuf)
+	//transaction, err := abi.Pack(string(methodBuf), initialSupply)
+	//log.LLvl1(transaction)
+
+
+	return nil, contractAddressBuf, nil
+}
+
+
+func byteSliceToAllConverter(argument []byte, argumentType abi.Type) interface{}{
+	switch argumentType.String() {
+	case "string":
+		log.LLvl1("converting a string")
+		return string(argument)
+	case "address":
+		log.LLvl1("converting an address")
+		return common.HexToAddress(string(argument))
+	}
+
+	return nil
 }

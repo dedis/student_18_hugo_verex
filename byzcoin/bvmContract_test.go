@@ -130,7 +130,7 @@ func getArgsForCreate() byzcoin.Arguments {
 			Value: initialSupply,
 		},
 		{
-			Name: "from",
+			Name: "toGiveTo",
 			Value: publicKey,
 		},
 
