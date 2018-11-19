@@ -99,7 +99,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 				return nil, nil, err
 			}
 			//Creating the transaction that will be sent to the bvm
-			transaction, addrContract, err := createArgumentParser(inst)
+			transaction, addrContract, err := generalArgsParser(inst)
 			if err !=nil {
 				return nil,nil, err
 			}
@@ -135,7 +135,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 
 //createArgumentParser creates a transaction for the create method of modifiedToken
 func createArgumentParser(inst byzcoin.Instruction) (abiPack []byte, contractAddress []byte,  err error) {
-	return generalArgsParser(inst)
+	//return generalArgsParser(inst)
 	//log.LLvl1("Parsing arguments for create method")
 	arguments := inst.Invoke.Args
 	if len(arguments)<3{
@@ -173,57 +173,6 @@ func createArgumentParser(inst byzcoin.Instruction) (abiPack []byte, contractAdd
 	return transaction, contractAddressBuf, nil
 }
 
-//WARNING : incomplete
-//argumentParser parses an arbitrary number of arguments and creates a transaction for an arbitrary method call
-func argumentParser(inst byzcoin.Instruction) (abiPack []byte, contractAddress []byte,  err error) {
-
-	log.LLvl1("Parsing arguments and creating transaction")
-	arguments := inst.Invoke.Args
-	if len(arguments)<3{
-		log.LLvl1("Please provide at least a contract address, the contract abi and the method name.")
-		return nil, nil, err
-	}
-	//Getting the general arguments needed to call an Ethereum SC method :
-	//contract address, abi, name of the method
-	contractAddressBuf := inst.Invoke.Args.Search("contractAddress")
-	if contractAddressBuf == nil {
-		log.LLvl1(err)
-		return nil, nil, err
-	}
-	abiBuf := inst.Invoke.Args.Search("abi")
-	if abiBuf == nil {
-		log.LLvl1(err)
-		return nil, nil, err
-	}
-	methodBuf := inst.Invoke.Args.Search("method")
-	if methodBuf == nil {
-		log.LLvl1(err)
-		return nil, nil, err
-	}
-	abi, err := abi.JSON(strings.NewReader(string(abiBuf)))
-	if err != nil {
-		return  nil, nil, err
-	}
-	//parsing the arguments in order
-	var leftLength = len(arguments) - 3
-	leftArgs := make([][]byte, leftLength)
-
-	if leftLength == 0 {
-		transaction, err := abi.Pack(string(methodBuf), big.NewInt(45), common.BytesToAddress(contractAddressBuf))
-		if err != nil {
-			return  nil, nil, err
-		}
-		log.LLvl1("Only three arguments were provided, creating transaction")
-		return transaction, contractAddressBuf, nil
-	}
-
-	for i:=0; i<leftLength; i++ {
-		leftArgs[i] = inst.Invoke.Args[3+i].Value
-	}
-
-	return  nil, contractAddressBuf,nil
-}
-
 
 
 func generalArgsParser(inst byzcoin.Instruction) (abiPack []byte, contractAddress []byte,  err error){
@@ -259,35 +208,86 @@ func generalArgsParser(inst byzcoin.Instruction) (abiPack []byte, contractAddres
 	switch len(abi.Methods[methodName].Inputs) {
 		case 1:
 			log.LLvl1("one argument")
-			arg0 := abi.Methods[methodName].Inputs[0]
-			log.LLvl1(arg0.Type)
+			input0 := abi.Methods[methodName].Inputs[0]
+			arg0 := inst.Invoke.Args.Search(input0.Name)
+			argC0 := byteSliceToAllConverter(arg0, input0.Type)
+			transaction, err := abi.Pack(methodName, argC0)
+			if err != nil {
+				return nil, nil, err
+			}
+			return transaction, contractAddressBuf, nil
 
 		case 2:
 			log.LLvl1("two arguments")
 			input0 := abi.Methods[methodName].Inputs[0]
-			input1 := abi.Methods[methodName].Inputs[1]
-			log.LLvl1(reflect.TypeOf(input0))
-			log.LLvl1("We have", input0.Name, input0.Type)
-			log.LLvl1("We have", input1.Name, input1.Type)
-
 			arg0 := inst.Invoke.Args.Search(input0.Name)
+			argC0 := byteSliceToAllConverter(arg0, input0.Type)
+
+			input1 := abi.Methods[methodName].Inputs[1]
 			arg1 := inst.Invoke.Args.Search(input1.Name)
-			log.LLvl1("type in string format?",input0.Type.String())
+			argC1 := byteSliceToAllConverter(arg1, input1.Type)
+
+			log.LLvl1("the two parsed argument are", argC0, argC1)
+			log.LLvl1(reflect.TypeOf(argC0))
+			log.LLvl1(reflect.TypeOf(argC1))
+			transaction, err := abi.Pack(methodName, argC0, argC1)
+			if err != nil {
+				return nil, nil, err
+			}
+			return transaction, contractAddressBuf, nil
+
+		case 3:
+			log.LLvl1("three arguments")
+			input0 := abi.Methods[methodName].Inputs[0]
+			arg0 := inst.Invoke.Args.Search(input0.Name)
+			argC0 := byteSliceToAllConverter(arg0, input0.Type)
+
+			input1 := abi.Methods[methodName].Inputs[1]
+			arg1 := inst.Invoke.Args.Search(input1.Name)
+			argC1 := byteSliceToAllConverter(arg1, input1.Type)
+
+			input2 := abi.Methods[methodName].Inputs[2]
+			arg2 := inst.Invoke.Args.Search(input2.Name)
+			argC2 := byteSliceToAllConverter(arg2, input2.Type)
+
+			log.LLvl1("the three parsed argument are", argC0, argC1, argC2)
+			transaction, err := abi.Pack(methodName, argC0, argC1)
+			if err != nil {
+				return nil, nil, err
+			}
+			return transaction, contractAddressBuf, nil
+
+		case 4:
+			log.LLvl1("four arguments")
+			input0 := abi.Methods[methodName].Inputs[0]
+			arg0 := inst.Invoke.Args.Search(input0.Name)
+			argC0 := byteSliceToAllConverter(arg0, input0.Type)
+
+			input1 := abi.Methods[methodName].Inputs[1]
+			arg1 := inst.Invoke.Args.Search(input1.Name)
+			argC1 := byteSliceToAllConverter(arg1, input1.Type)
+
+			input2 := abi.Methods[methodName].Inputs[2]
+			arg2 := inst.Invoke.Args.Search(input2.Name)
+			argC2 := byteSliceToAllConverter(arg2, input2.Type)
+
+			input3 := abi.Methods[methodName].Inputs[3]
+			arg3 := inst.Invoke.Args.Search(input3.Name)
+			argC3 := byteSliceToAllConverter(arg3, input3.Type)
+
+			log.LLvl1("the three parsed argument are", argC0, argC1, argC2, argC3)
+			transaction, err := abi.Pack(methodName, argC0, argC1)
+			if err != nil {
+				return nil, nil, err
+			}
+			return transaction, contractAddressBuf, nil
 
 
 
-			log.LLvl1(byteSliceToAllConverter(arg0, input0.Type))
-			log.LLvl1(arg1)
-
-
-
-	
 	}
 
 
-	//common.BytesToAddress(fromBuf)
-	//transaction, err := abi.Pack(string(methodBuf), initialSupply)
-	//log.LLvl1(transaction)
+
 
 
 	return nil, contractAddressBuf, nil
@@ -295,6 +295,7 @@ func generalArgsParser(inst byzcoin.Instruction) (abiPack []byte, contractAddres
 
 
 func byteSliceToAllConverter(argument []byte, argumentType abi.Type) interface{}{
+	log.LLvl1("We have an argument of type :", argumentType.String())
 	switch argumentType.String() {
 	case "string":
 		log.LLvl1("converting a string")
@@ -302,7 +303,14 @@ func byteSliceToAllConverter(argument []byte, argumentType abi.Type) interface{}
 	case "address":
 		log.LLvl1("converting an address")
 		return common.HexToAddress(string(argument))
+	case "uint256":
+		log.LLvl1("converting a number")
+		number, _ := strconv.ParseUint(string(argument), 10, 32)
+		log.LLvl1(reflect.TypeOf(number))
+		return number
+	default:
+		log.LLvl1("type of argument not recognized")
+		return nil
 	}
-
 	return nil
 }
