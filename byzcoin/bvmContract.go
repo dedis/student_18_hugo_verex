@@ -3,6 +3,7 @@ package byzcoin
 import (
 	"errors"
 	"math/big"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -102,6 +103,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if err !=nil {
 				return nil,nil, err
 			}
+
 			//Sending the transaction to the bvm
 			addressOfContract := common.HexToAddress(string(addrContract))
 			_, _, err = bvm.Call(accountRef, addressOfContract, transaction, 100000000, big.NewInt(0))
@@ -166,6 +168,16 @@ func createArgumentParser(inst byzcoin.Instruction) (abiPack []byte, contractAdd
 	if err!=nil {
 		return nil, nil , err
 	}
+	log.LLvl1("ABI DISSECTING")
+	log.LLvl1(abi.Methods["create"].Inputs)
+	log.LLvl1(abi.Methods["balanceOf"].Inputs)
+	log.LLvl1("unicorn", abi.Methods["unicorn"])
+
+	log.LLvl1("size of args",len(abi.Methods["create"].Inputs))
+
+	log.LLvl1(reflect.TypeOf(abi.Methods["create"]))
+	log.LLvl1(abi.Constructor.Inputs)
+
 	transaction, err := abi.Pack(string(methodBuf), initialSupply, common.BytesToAddress(fromBuf))
 	return transaction, contractAddressBuf, nil
 }
@@ -219,4 +231,66 @@ func argumentParser(inst byzcoin.Instruction) (abiPack []byte, contractAddress [
 	}
 
 	return  nil, contractAddressBuf,nil
+}
+
+
+
+func generalArgsParser(inst byzcoin.Instruction) (abiPack []byte, contractAddress []byte,  err error){
+
+	arguments := inst.Invoke.Args
+	if len(arguments)<3{
+		log.LLvl1("Please provide at least a contract address, the contract abi and the method name.")
+		return nil, nil, err
+	}
+	//Getting the general arguments needed to call an Ethereum SC method :
+	//contract address, abi, name of the method
+	contractAddressBuf := inst.Invoke.Args.Search("contractAddress")
+	if contractAddressBuf == nil {
+		log.LLvl1(err)
+		return nil, nil, err
+	}
+	abiBuf := inst.Invoke.Args.Search("abi")
+	if abiBuf == nil {
+		log.LLvl1(err)
+		return nil, nil, err
+	}
+	methodBuf := inst.Invoke.Args.Search("method")
+	if methodBuf == nil {
+		log.LLvl1(err)
+		return nil, nil, err
+	}
+	abi, err := abi.JSON(strings.NewReader(string(abiBuf)))
+	if err != nil {
+		return  nil, nil, err
+	}
+
+
+	var leftLength = len(arguments) - 3
+	log.LLvl1(leftLength)
+	leftArgsBuf := make([][]byte, leftLength)
+	log.LLvl1(reflect.TypeOf(leftArgsBuf))
+	leftArgsType := make([]string, leftLength)
+
+	for i:=0; i<leftLength; i++ {
+		log.LLvl1(i)
+		leftArgsBuf[i] = arguments[3+i].Value
+		log.LLvl1("argument buffer", leftArgsBuf)
+		typeOfArg := arguments[3+i].Name
+		log.LLvl1(typeOfArg)
+		s := strings.Split(typeOfArg, ":")
+		log.LLvl1(s)
+		_, argType := s[0], s[1]
+		leftArgsType[i] = argType
+		log.LLvl1("We have the value", leftArgsBuf[i], " which is ", argType)
+
+	}
+	fromBuf := []byte{}
+	initialSupply := 0
+
+	common.BytesToAddress(fromBuf)
+	transaction, err := abi.Pack(string(methodBuf), initialSupply)
+	log.LLvl1(transaction)
+
+
+	return transaction, contractAddressBuf, nil
 }
