@@ -1,6 +1,9 @@
 package byzcoin
 
 import (
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"math/big"
+	"strings"
 	"testing"
 	"time"
 
@@ -77,7 +80,8 @@ func TestEVMContract_Invoke_Call(t *testing.T) {
 	pr1, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
 	_, _, err = pr1.KeyValue()
 	require.Nil(t, err)
-	args = getArgsForCreate()
+	args, err = getAbiCallForCreate()
+	require.Nil(t, err)
 	bct.methodCallInstance(t, instID, args)
 	require.Nil(t, err)
 	/*
@@ -86,56 +90,39 @@ func TestEVMContract_Invoke_Call(t *testing.T) {
 	require.Nil(t, err)*/
 
 }
-/*
 
-func TestEVMContract_Invoke_General(t *testing.T) {
-	log.LLvl1("test: call a contract")
-	bct := newBCTest(t)
-	defer bct.Close()
-	args := byzcoin.Arguments{}
-	instID := bct.createInstance(t, args)
-	// Wait for the proof to be available.
-	pr1, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
-	_, _, err = pr1.KeyValue()
-	require.Nil(t, err)
-	args = getArgsGeneral()
-	bct.methodCallInstance(t, instID, args)
-	require.Nil(t, err)
-
-
-}*/
-
-func getArgsForCreate() byzcoin.Arguments {
-	abi := []byte(`[{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_amount","type":"uint256"}],"name":"send","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"initialSupply","type":"uint256"},{"name":"toGiveTo","type":"address"}],"name":"create","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"account","type":"address"}],"name":"getBalance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}]`)
-	methodName := []byte("create")
+func getAbiCallForCreate() (ba byzcoin.Arguments , err error){
+	abiBuf := `[{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_amount","type":"uint256"}],"name":"send","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"initialSupply","type":"uint256"},{"name":"toGiveTo","type":"address"}],"name":"create","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"account","type":"address"}],"name":"getBalance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}]`
+	methodName := "create"
 	contractAddress := []byte("0xBd770416a3345F91E4B34576cb804a576fa48EB1")
-	publicKey := []byte("0x1111111111111111111111111111111111111111")
-	initialSupply := []byte("21000000")
+	publicKey := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	initialSupply := int64(100)
 
-	args := byzcoin.Arguments{
-		{
-			Name:  "contractAddress",
-			Value: contractAddress,
-		},
-		{
-			Name:  "abi",
-			Value: abi,
-		},
-		{
-			Name:  "method",
-			Value: methodName,
-		},
-		{
-			Name: "initialSupply",
-			Value: initialSupply,
-		},
-		{
-			Name: "toGiveTo",
-			Value: publicKey,
-		},
+
+	ABI, err := abi.JSON(strings.NewReader(string(abiBuf)))
+	if err != nil {
+		return nil, err
 
 	}
-	return args
+
+	abiCall, err := ABI.Pack(methodName, big.NewInt(initialSupply), publicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	ba = byzcoin.Arguments{
+		{
+			Name: "contractAddress",
+			Value: contractAddress,
+
+		},
+		{
+			Name: "abiCall",
+			Value: abiCall,
+
+		},
+	}
+	return
 }
 
 

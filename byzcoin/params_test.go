@@ -50,13 +50,13 @@ func TestTokenContract(t *testing.T) {
 	require.Nil(t, err)
 	get, err := abi.Pack("getBalance", aPublicKey)
 	require.Nil(t, err)
-	send, err := abi.Pack("transfer", aPublicKey, bPublicKey,uint32(1))
+	send, err := abi.Pack("transfer", aPublicKey, bPublicKey,uint64(1))
 	require.Nil(t, err)
 	get1, err := abi.Pack("getBalance", bPublicKey)
 	require.Nil(t, err)
 	get2, err := abi.Pack("getBalance", aPublicKey)
 	require.Nil(t, err)
-	transferTests, err := abi.Pack("transfer", aPublicKey, bPublicKey, uint32(1))
+	transferTests, err := abi.Pack("transfer", aPublicKey, bPublicKey, uint64(1))
 	require.Nil(t, err)
 
 
