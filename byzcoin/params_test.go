@@ -46,7 +46,7 @@ func TestTokenContract(t *testing.T) {
 	abi, err := abi.JSON(strings.NewReader(simpleAbi))
 	require.Nil(t, err)
 	//Helper functions for contract call
-	create, err := abi.Pack("create", uint32(12), aPublicKey)
+	create, err := abi.Pack("create", uint64(12), aPublicKey)
 	require.Nil(t, err)
 	get, err := abi.Pack("getBalance", aPublicKey)
 	require.Nil(t, err)

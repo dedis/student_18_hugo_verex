@@ -138,38 +138,6 @@ func getArgsForCreate() byzcoin.Arguments {
 	return args
 }
 
-func getArgsGeneral() byzcoin.Arguments {
-	abi := []byte(`[{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_amount","type":"uint256"}],"name":"send","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"initialSupply","type":"uint256"},{"name":"toGiveTo","type":"address"}],"name":"create","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"account","type":"address"}],"name":"getBalance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}]`)
-	methodName := []byte("create")
-	contractAddress := []byte("0xBd770416a3345F91E4B34576cb804a576fa48EB1")
-	publicKey := []byte("0x1111111111111111111111111111111111111111")
-	initialSupply := []byte("21000000")
-
-	args := byzcoin.Arguments{
-		{
-			Name:  "contractAddress",
-			Value: contractAddress,
-		},
-		{
-			Name:  "abi",
-			Value: abi,
-		},
-		{
-			Name:  "method",
-			Value: methodName,
-		},
-		{
-			Name: "initialSupply:uint32",
-			Value: initialSupply,
-		},
-		{
-			Name: "from:common.Address",
-			Value: publicKey,
-		},
-
-	}
-	return args
-}
 
 func getArgsForTransfer() byzcoin.Arguments{
 	abi := []byte(`[{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_amount","type":"uint256"}],"name":"send","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"initialSupply","type":"uint256"},{"name":"toGiveTo","type":"address"}],"name":"create","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"account","type":"address"}],"name":"getBalance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}]`)

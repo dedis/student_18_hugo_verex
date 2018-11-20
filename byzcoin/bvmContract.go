@@ -76,11 +76,11 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if bytecode == nil {
 				return nil, nil, errors.New("no bytecode provided")
 			}
-			_, contractAddress, _, err := bvm.Create(accountRef, bytecode, 100000000, big.NewInt(0))
+			_, contractAddress, leftOverGas, err := bvm.Create(accountRef, bytecode, 100000000, big.NewInt(0))
 			if err != nil {
 				return nil, nil, err
 			}
-			log.LLvl1("successful contract deployment at", contractAddress.Hex())
+			log.LLvl1("successful contract deployment at", contractAddress.Hex(), ". Left over gas: ", leftOverGas)
 			dbBuf, err := memDB.Dump()
 			if err != nil {
 				return nil, nil, err
@@ -106,11 +106,12 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 
 			//Sending the transaction to the bvm
 			addressOfContract := common.HexToAddress(string(addrContract))
-			_, _, err = bvm.Call(accountRef, addressOfContract, transaction, 100000000, big.NewInt(0))
+			log.LLvl1(addressOfContract.Hex())
+			ret, leftOverGas, err := bvm.Call(accountRef, addressOfContract, transaction, 100000000, big.NewInt(0))
 			if err != nil {
 				return nil, nil, err
 			}
-			log.LLvl1("Successful method call at address :", addressOfContract.Hex())
+			log.LLvl1("Successful method call at address :", addressOfContract.Hex(), " left over gas: ", leftOverGas, ". Call returned : ", ret)
 			//Saving state changes in DB
 			dbBuf, err := memDB.Dump()
 			if err != nil {
@@ -169,6 +170,7 @@ func createArgumentParser(inst byzcoin.Instruction) (abiPack []byte, contractAdd
 	if err!=nil {
 		return nil, nil , err
 	}
+	log.LLvl1(reflect.TypeOf(initialSupply))
 	transaction, err := abi.Pack(string(methodBuf), initialSupply, common.BytesToAddress(fromBuf))
 	return transaction, contractAddressBuf, nil
 }
@@ -200,7 +202,7 @@ func generalArgsParser(inst byzcoin.Instruction) (abiPack []byte, contractAddres
 		return nil, nil, err
 	}
 	methodName := string(methodBuf)
-	log.LLvl1("Parsing of ", methodName, " arguments")
+	log.LLvl1("Parsing of ", methodName, " method arguments")
 	abi, err := abi.JSON(strings.NewReader(string(abiBuf)))
 	if err != nil {
 		return  nil, nil, err
@@ -225,11 +227,12 @@ func generalArgsParser(inst byzcoin.Instruction) (abiPack []byte, contractAddres
 
 			input1 := abi.Methods[methodName].Inputs[1]
 			arg1 := inst.Invoke.Args.Search(input1.Name)
+			log.LLvl1(input0.Name, input1.Name)
 			argC1 := byteSliceToAllConverter(arg1, input1.Type)
-
+			/*
 			log.LLvl1("the two parsed argument are", argC0, argC1)
 			log.LLvl1(reflect.TypeOf(argC0))
-			log.LLvl1(reflect.TypeOf(argC1))
+			log.LLvl1(reflect.TypeOf(argC1))*/
 			transaction, err := abi.Pack(methodName, argC0, argC1)
 			if err != nil {
 				return nil, nil, err
@@ -251,7 +254,7 @@ func generalArgsParser(inst byzcoin.Instruction) (abiPack []byte, contractAddres
 			argC2 := byteSliceToAllConverter(arg2, input2.Type)
 
 			log.LLvl1("the three parsed argument are", argC0, argC1, argC2)
-			transaction, err := abi.Pack(methodName, argC0, argC1)
+			transaction, err := abi.Pack(methodName, argC0, argC1, argC2)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -276,7 +279,7 @@ func generalArgsParser(inst byzcoin.Instruction) (abiPack []byte, contractAddres
 			argC3 := byteSliceToAllConverter(arg3, input3.Type)
 
 			log.LLvl1("the three parsed argument are", argC0, argC1, argC2, argC3)
-			transaction, err := abi.Pack(methodName, argC0, argC1)
+			transaction, err := abi.Pack(methodName, argC0, argC1, argC2, argC3)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -295,7 +298,7 @@ func generalArgsParser(inst byzcoin.Instruction) (abiPack []byte, contractAddres
 
 
 func byteSliceToAllConverter(argument []byte, argumentType abi.Type) interface{}{
-	log.LLvl1("We have an argument of type :", argumentType.String())
+	//log.LLvl1("argument is of type", argumentType.String())
 	switch argumentType.String() {
 	case "string":
 		log.LLvl1("converting a string")
@@ -305,7 +308,11 @@ func byteSliceToAllConverter(argument []byte, argumentType abi.Type) interface{}
 		return common.HexToAddress(string(argument))
 	case "uint256":
 		log.LLvl1("converting a number")
-		number, _ := strconv.ParseUint(string(argument), 10, 32)
+		number, err := strconv.ParseInt(string(argument), 10, 64)
+		if err!=nil{
+			log.LLvl1("error converting number ", err)
+			return err
+		}
 		log.LLvl1(reflect.TypeOf(number))
 		return number
 	default:
