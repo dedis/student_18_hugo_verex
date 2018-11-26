@@ -2,6 +2,8 @@ package byzcoin
 
 import (
 	"errors"
+	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"math/big"
 
@@ -122,6 +124,24 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 	err = errors.New("didn't find any instructions")
 	return
 
+}
+
+func sendTransactionHelper(){
+	account := &common.Address{0x01}
+	chainconfig := getChainConfig()
+	memDB, _ := NewMemDatabase([]byte{})
+	statedb, _ := getDB(memDB)
+	config := getVMConfig()
+	gp := new(core.GasPool).AddGas(uint64(8000000))
+	var bc core.ChainContext
+	var header  *types.Header
+	var tx *types.Transaction
+	usedGas := uint64(10000)
+	ug := &usedGas
+	_,_, err := core.ApplyTransaction(chainconfig, bc, account, gp, statedb, header, tx, ug, config)
+	if err !=nil{
+		log.LLvl1(err)
+	}
 }
 
 //createArgumentParser creates a transaction for the create method of modifiedToken
