@@ -126,22 +126,36 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 
 }
 
-func sendTransactionHelper(){
-	account := &common.Address{0x01}
+func sendTransactionHelper(author *common.Address){
+	//account := &common.Address{0x01}
 	chainconfig := getChainConfig()
 	memDB, _ := NewMemDatabase([]byte{})
 	statedb, _ := getDB(memDB)
 	config := getVMConfig()
+
+	//// GasPool tracks the amount of gas available during execution of the transactions in a block.
 	gp := new(core.GasPool).AddGas(uint64(8000000))
+
+	// ChainContext supports retrieving headers and consensus parameters from the
+	// current blockchain to be used during transaction processing.
 	var bc core.ChainContext
+
+	// Header represents a block header in the Ethereum blockchain.
 	var header  *types.Header
+
+	//Ethereum transaction
 	var tx *types.Transaction
-	usedGas := uint64(10000)
+
+
+	usedGas := uint64(0)
 	ug := &usedGas
-	_,_, err := core.ApplyTransaction(chainconfig, bc, account, gp, statedb, header, tx, ug, config)
+
+
+	receipt, usedGas, err := core.ApplyTransaction(chainconfig, bc, author, gp, statedb, header, tx, ug, config)
 	if err !=nil{
 		log.LLvl1(err)
 	}
+	log.LLvl1(receipt)
 }
 
 //createArgumentParser creates a transaction for the create method of modifiedToken
@@ -163,4 +177,20 @@ func getAbiCall(inst byzcoin.Instruction) (abiPack []byte, contractAddress []byt
 	}
 
 	return abiBuf, contractAddressBuf, nil
+}
+
+
+
+func createTransaction(accountNonce uint64, price *big.Int, gaslimit uint64, recipient *common.Address, amount *big.Int, payload []byte) *Transaction{
+	txdata := Txdata{
+		AccountNonce: accountNonce,
+		Price: price,
+		GasLimit: gaslimit,
+		Recipient: recipient,
+		Amount: amount,
+		Payload: payload,
+	}
+	tx := &Transaction{txdata}
+
+	return tx
 }

@@ -91,6 +91,13 @@ func TestEVMContract_Invoke_Call(t *testing.T) {
 
 }
 
+
+func TestEVMContract_Apply_Transaction(t *testing.T){
+	log.LLvl1("Testing applying tx")
+	sendTransactionHelper(&common.Address{0x01})
+
+}
+
 func getAbiCallForCreate() (ba byzcoin.Arguments , err error){
 	abiBuf := `[{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_amount","type":"uint256"}],"name":"send","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"initialSupply","type":"uint256"},{"name":"toGiveTo","type":"address"}],"name":"create","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"account","type":"address"}],"name":"getBalance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}]`
 	methodName := "create"
