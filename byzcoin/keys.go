@@ -24,7 +24,7 @@ type Key struct {
 func GenerateKeys() (address common.Address, privateKey *ecdsa.PrivateKey) {
 	private, err := crypto.GenerateKey()
 	if err != nil {
-	log.LLvl1(err)
+		log.LLvl1(err)
 	}
 	key := NewKeyFromECDSA(private)
 	address = key.Address

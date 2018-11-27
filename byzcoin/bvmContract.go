@@ -134,7 +134,7 @@ func sendTransactionHelper(author *common.Address){
 	config := getVMConfig()
 
 	//// GasPool tracks the amount of gas available during execution of the transactions in a block.
-	gp := new(core.GasPool).AddGas(uint64(8000000))
+	gp := new(core.GasPool).AddGas(uint64(800000))
 
 	// ChainContext supports retrieving headers and consensus parameters from the
 	// current blockchain to be used during transaction processing.
@@ -142,16 +142,32 @@ func sendTransactionHelper(author *common.Address){
 
 	// Header represents a block header in the Ethereum blockchain.
 	var header  *types.Header
+	header = &types.Header{
+		Number: big.NewInt(0),
+		Difficulty: big.NewInt(0),
+		ParentHash: common.Hash{0x00},
+		Time: big.NewInt(0),
+	}
 
 	//Ethereum transaction
+	nilAddress := common.HexToAddress("0x0000000000000000000000000000000000000000")
 	var tx *types.Transaction
 
-
+	public, private := GenerateKeys()
+	log.LLvl1(public.Hex())
+	log.LLvl1(private)
+	CreditAccount(statedb, public, 10)
+	tx = types.NewTransaction(0, nilAddress, big.NewInt(1), 100000, big.NewInt(20000000000*0), []byte{})
+	//func SignTx(tx *Transaction, s Signer, prv *ecdsa.PrivateKey) (*Transaction, error) {
+	//var signer types.Signer = types.FrontierSigner{}
+	signer1 := types.NewEIP155Signer(big.NewInt(0))
+	tx, err := types.SignTx(tx, signer1, private)
+	if err != nil {
+		log.LLvl1(err)
+	}
 	usedGas := uint64(0)
 	ug := &usedGas
-
-
-	receipt, usedGas, err := core.ApplyTransaction(chainconfig, bc, author, gp, statedb, header, tx, ug, config)
+	receipt, usedGas, err := core.ApplyTransaction(chainconfig, bc, &public, gp, statedb, header, tx, ug, config)
 	if err !=nil{
 		log.LLvl1(err)
 	}
