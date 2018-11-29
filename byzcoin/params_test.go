@@ -15,16 +15,16 @@ import (
 func TestTokenContract(t *testing.T) {
 
 	canTransfer := func(vm.StateDB, common.Address, *big.Int) bool {
-		//log.Println("Verified transfer")
+		log.Lvl2("tried to verify transfer")
 		return true
 	}
 
 	transfer := func(vm.StateDB, common.Address, common.Address, *big.Int) {
-		log.Lvl3("tried to transfer")
+		log.Lvl2("tried to transfer")
 	}
 
 	gethash := func(uint64) common.Hash {
-		log.Lvl3("tried to get hash")
+		log.Lvl2("tried to get hash")
 		return common.HexToHash("0x0000000000000000000000000000000000000000")
 	}
 

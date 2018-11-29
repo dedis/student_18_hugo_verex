@@ -55,7 +55,13 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 
 	case byzcoin.InvokeType:
 		switch inst.Invoke.Command {
+		case "printAccount":
+
+		case "creditAccount":
+
+
 		case "deploy":
+			//remove deploy
 			memDB, err := NewMemDatabase(memDBBuff)
 			if err != nil {
 				log.LLvl1("problem generating DB")
@@ -70,6 +76,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if bytecode == nil {
 				return nil, nil, errors.New("no bytecode provided")
 			}
+			//same here
 			_, contractAddress, leftOverGas, err := bvm.Create(accountRef, bytecode, 100000000, big.NewInt(0))
 			if err != nil {
 				return nil, nil, err
@@ -82,7 +89,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			scs = []byzcoin.StateChange{
 				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
 			}
-		case "call":
+		case "transaction":
 			memDB, err := NewMemDatabase(memDBBuff)
 			if err != nil {
 				return nil, nil, err
@@ -100,6 +107,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			}
 			//Sending the transaction to the bvm
 			addressOfContract := common.HexToAddress(string(addrContract))
+			//send transaction here instead of using evm.Call
 			_, leftOverGas, err := bvm.Call(accountRef, addressOfContract, transaction, 100000000, big.NewInt(0))
 			if err != nil {
 				return nil, nil, err
@@ -127,7 +135,6 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 }
 
 func sendTransactionHelper(author *common.Address){
-	//account := &common.Address{0x01}
 	chainconfig := getChainConfig()
 	memDB, _ := NewMemDatabase([]byte{})
 	statedb, _ := getDB(memDB)
@@ -153,21 +160,20 @@ func sendTransactionHelper(author *common.Address){
 	nilAddress := common.HexToAddress("0x0000000000000000000000000000000000000000")
 	var tx *types.Transaction
 
-	public, private := GenerateKeys()
-	log.LLvl1(public.Hex())
-	log.LLvl1(private)
-	CreditAccount(statedb, public, 10)
-	tx = types.NewTransaction(0, nilAddress, big.NewInt(1), 100000, big.NewInt(20000000000*0), []byte{})
+	address, private := GenerateKeys()
+	CreditAccount(statedb, address, 10000)
+	tx = types.NewTransaction(0, nilAddress, big.NewInt(1), 100000, big.NewInt(2000000), []byte{})
 	//func SignTx(tx *Transaction, s Signer, prv *ecdsa.PrivateKey) (*Transaction, error) {
 	//var signer types.Signer = types.FrontierSigner{}
-	signer1 := types.NewEIP155Signer(big.NewInt(0))
+	var signer1 types.Signer = types.HomesteadSigner{}
+	//signer1 := types.NewEIP155Signer(big.NewInt(0))
 	tx, err := types.SignTx(tx, signer1, private)
 	if err != nil {
 		log.LLvl1(err)
 	}
 	usedGas := uint64(0)
 	ug := &usedGas
-	receipt, usedGas, err := core.ApplyTransaction(chainconfig, bc, &public, gp, statedb, header, tx, ug, config)
+	receipt, usedGas, err := core.ApplyTransaction(chainconfig, bc, &address, gp, statedb, header, tx, ug, config)
 	if err !=nil{
 		log.LLvl1(err)
 	}
@@ -195,18 +201,3 @@ func getAbiCall(inst byzcoin.Instruction) (abiPack []byte, contractAddress []byt
 	return abiBuf, contractAddressBuf, nil
 }
 
-
-
-func createTransaction(accountNonce uint64, price *big.Int, gaslimit uint64, recipient *common.Address, amount *big.Int, payload []byte) *Transaction{
-	txdata := Txdata{
-		AccountNonce: accountNonce,
-		Price: price,
-		GasLimit: gaslimit,
-		Recipient: recipient,
-		Amount: amount,
-		Payload: payload,
-	}
-	tx := &Transaction{txdata}
-
-	return tx
-}

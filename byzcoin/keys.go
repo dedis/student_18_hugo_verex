@@ -2,6 +2,7 @@ package byzcoin
 
 import (
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"github.com/dedis/onet/log"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -24,17 +25,24 @@ type Key struct {
 func GenerateKeys() (address common.Address, privateKey *ecdsa.PrivateKey) {
 	private, err := crypto.GenerateKey()
 	if err != nil {
-		log.LLvl1(err)
+		log.Fatal(err)
+
 	}
-	key := NewKeyFromECDSA(private)
-	address = key.Address
-	privateKey = key.PrivateKey
+	//key := NewKeyFromECDSA(private)
+	address = crypto.PubkeyToAddress(private.PublicKey)
+	//address = key.Address
+	//privateKey = key.PrivateKey
+
+	log.Lvlf2("Public key : %x ",  elliptic.Marshal(crypto.S256(), private.PublicKey.X, private.PublicKey.Y))
+	log.Lvl2("Address generated : ", address.Hex())
+	privateKey = private
 	return
 }
 
 //CreditAccount creates an account and load it with ether
 func CreditAccount(db *state.StateDB, key common.Address, value int64) common.Address {
-	db.SetBalance(key, big.NewInt(1000000000000000000*value))
+	db.SetBalance(key, big.NewInt(1e9*value))
+	log.LLvl1("the balance of account is ", db.GetBalance(key))
 	log.Lvl2("Loaded account", key.Hex(), "with ", value, " ether")
 	return key
 }
