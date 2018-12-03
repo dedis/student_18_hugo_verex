@@ -42,8 +42,7 @@ func GenerateKeys() (address common.Address, privateKey *ecdsa.PrivateKey) {
 //CreditAccount creates an account and load it with ether
 func CreditAccount(db *state.StateDB, key common.Address, value int64) common.Address {
 	db.SetBalance(key, big.NewInt(1e9*value))
-	log.LLvl1("the balance of account is ", db.GetBalance(key))
-	log.Lvl2("Loaded account", key.Hex(), "with ", value, " ether")
+	log.LLvl1("the balance of account ",key.Hex() ," is ", db.GetBalance(key))
 	return key
 }
 

@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"math/big"
+	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -55,33 +56,27 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 
 	case byzcoin.InvokeType:
 		switch inst.Invoke.Command {
-		case "printAccount":
-
-		case "creditAccount":
-
-
-		case "deploy":
-			//remove deploy
+		case "display":
 			memDB, err := NewMemDatabase(memDBBuff)
 			if err != nil {
 				log.LLvl1("problem generating DB")
 				return nil, nil, err
 			}
-			bvm, err := spawnEvm(memDB)
-			if err != nil {
-				log.LLvl1("problem generating EVM")
+			addressBuf := inst.Invoke.Args.Search("address")
+			if addressBuf == nil {
+				return nil, nil, errors.New("no address provided")
+			}
+			db, err := getDB(memDB)
+			if err !=nil {
 				return nil, nil, err
 			}
-			bytecode := inst.Invoke.Args.Search("bytecode")
-			if bytecode == nil {
-				return nil, nil, errors.New("no bytecode provided")
+			address := common.HexToAddress(string(addressBuf))
+			ret := db.GetBalance(address)
+			if ret == big.NewInt(0) {
+				log.LLvl1("object not found")
 			}
-			//same here
-			_, contractAddress, leftOverGas, err := bvm.Create(accountRef, bytecode, 100000000, big.NewInt(0))
-			if err != nil {
-				return nil, nil, err
-			}
-			log.LLvl1("successful contract deployment at", contractAddress.Hex(), ". Left over gas: ", leftOverGas)
+			log.LLvl1(db.Exist(address))
+			log.LLvl1("the account", address.Hex(), " has ", ret, " eth")
 			dbBuf, err := memDB.Dump()
 			if err != nil {
 				return nil, nil, err
@@ -89,6 +84,41 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			scs = []byzcoin.StateChange{
 				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
 			}
+
+
+
+		case "credit":
+			memDB, err := NewMemDatabase(memDBBuff)
+			if err != nil {
+				log.LLvl1("problem generating DB")
+				return nil, nil, err
+			}
+			addressBuf := inst.Invoke.Args.Search("address")
+			if addressBuf == nil {
+				return nil, nil, errors.New("no address provided")
+			}
+			value := inst.Invoke.Args.Search("value")
+			if value == nil {
+				return nil, nil , errors.New("no value provided")
+			}
+			db, err := getDB(memDB)
+			if err !=nil {
+				return nil, nil, err
+			}
+			eth, err := strconv.ParseInt(string(value), 10, 64)
+			if err !=nil {
+				return nil, nil, err
+			}
+			CreditAccount(db, common.HexToAddress(string(addressBuf)), eth)
+			//db.Dump()
+			dbBuf, err := memDB.Dump()
+			if err != nil {
+				return nil, nil, err
+			}
+			scs = []byzcoin.StateChange{
+				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
+			}
+
 		case "transaction":
 			memDB, err := NewMemDatabase(memDBBuff)
 			if err != nil {
@@ -122,7 +152,6 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
 			}
 		}
-		//is this call useful?
 		scs = []byzcoin.StateChange{
 			byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, memDBBuff, darcID),
 		}
@@ -160,20 +189,20 @@ func sendTransactionHelper(author *common.Address){
 	nilAddress := common.HexToAddress("0x0000000000000000000000000000000000000000")
 	var tx *types.Transaction
 
-	address, private := GenerateKeys()
-	CreditAccount(statedb, address, 10000)
+	address1, private1 := GenerateKeys()
+	CreditAccount(statedb, address1, 10000)
 	tx = types.NewTransaction(0, nilAddress, big.NewInt(1), 100000, big.NewInt(2000000), []byte{})
 	//func SignTx(tx *Transaction, s Signer, prv *ecdsa.PrivateKey) (*Transaction, error) {
 	//var signer types.Signer = types.FrontierSigner{}
 	var signer1 types.Signer = types.HomesteadSigner{}
 	//signer1 := types.NewEIP155Signer(big.NewInt(0))
-	tx, err := types.SignTx(tx, signer1, private)
+	tx, err := types.SignTx(tx, signer1, private1)
 	if err != nil {
 		log.LLvl1(err)
 	}
 	usedGas := uint64(0)
 	ug := &usedGas
-	receipt, usedGas, err := core.ApplyTransaction(chainconfig, bc, &address, gp, statedb, header, tx, ug, config)
+	receipt, usedGas, err := core.ApplyTransaction(chainconfig, bc, &address1, gp, statedb, header, tx, ug, config)
 	if err !=nil{
 		log.LLvl1(err)
 	}
