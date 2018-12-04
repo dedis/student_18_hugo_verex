@@ -45,6 +45,28 @@ func TestEVMContract_Spawn(t *testing.T) {
 	require.Nil(t, err)
 }
 
+func TestEVMContract_Invoke_Display(t *testing.T){
+	log.LLvl1("test: displaying account")
+	bct := newBCTest(t)
+	bct.local.Check = onet.CheckNone
+	defer bct.Close()
+	address := "0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61"
+	addressB := []byte(address)
+	args := byzcoin.Arguments{
+		{
+			Name:  "address",
+			Value: addressB,
+		},
+	}
+	instID := bct.createInstance(t, args)
+	_, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
+	require.Nil(t, err)
+	bct.displayAccountInstance(t, instID, args)
+	require.Nil(t, err)
+
+
+}
+
 func TestEVMContract_Invoke_Credit(t *testing.T) {
 	log.LLvl1("test: crediting an account")
 	bct := newBCTest(t)
@@ -72,55 +94,25 @@ func TestEVMContract_Invoke_Credit(t *testing.T) {
 
 }
 
-
-func TestEVMContract_Invoke_Display(t *testing.T){
-	log.LLvl1("test: displaying account")
+func TestEVMContract_Invoke_Transaction(t *testing.T){
+	log.LLvl1("test: sending transaction")
 	bct := newBCTest(t)
 	bct.local.Check = onet.CheckNone
 	defer bct.Close()
-	address := "0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61"
-	addressB := []byte(address)
+	contractAddress := []byte("0xBd770416a3345F91E4B34576cb804a576fa48EB1")
+	data := []byte{}
 	args := byzcoin.Arguments{
 		{
-			Name:  "address",
-			Value: addressB,
+			Name: "to",
+			Value: contractAddress,
+		},
+		{
+			Name: "data",
+			Value : data,
+
 		},
 	}
-	instID := bct.createInstance(t, args)
-	_, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
-	require.Nil(t, err)
-	bct.displayAccountInstance(t, instID, args)
-	require.Nil(t, err)
-
-
-}
-
-
-func TestEVMContract_Invoke_Call(t *testing.T) {
-	log.LLvl1("test: call a contract")
-	bct := newBCTest(t)
-	//defer bct.Close()
-	args := byzcoin.Arguments{}
-	instID := bct.createInstance(t, args)
-	// Wait for the proof to be available.
-	pr1, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
-	_, _, err = pr1.KeyValue()
-	require.Nil(t, err)
-	args, err = getAbiCallForCreate()
-	require.Nil(t, err)
-	bct.methodCallInstance(t, instID, args)
-	require.Nil(t, err)
-	/*
-	args = getArgsForTransfer()
-	bct.methodCallInstance(t, instID, args)
-	require.Nil(t, err)*/
-
-}
-
-
-func TestEVMContract_Apply_Transaction(t *testing.T){
-	log.LLvl1("Testing applying tx")
-	sendTransactionHelper(&common.Address{0x01})
+	bct.transactionInstance(t, instID, args)
 
 }
 
@@ -217,7 +209,7 @@ func newBCTest(t *testing.T) (out *bcTest) {
 	// to create and update keyValue contracts.
 	var err error
 	out.gMsg, err = byzcoin.DefaultGenesisMsg(byzcoin.CurrentVersion, out.roster,
-		[]string{"spawn:keyValue", "spawn:darc", "spawn:bvm", "invoke:credit", "invoke:call", "invoke:display"}, out.signer.Identity())
+		[]string{"spawn:keyValue", "spawn:darc", "spawn:bvm", "invoke:display", "invoke:credit", "invoke:transaction"}, out.signer.Identity())
 	require.Nil(t, err)
 	out.gDarc = &out.gMsg.GenesisDarc
 
@@ -260,6 +252,29 @@ func (bct *bcTest) createInstance(t *testing.T, args byzcoin.Arguments) byzcoin.
 }
 
 
+
+func (bct *bcTest) displayAccountInstance(t *testing.T, instID byzcoin.InstanceID, args byzcoin.Arguments){
+	ctx := byzcoin.ClientTransaction{
+		Instructions: []byzcoin.Instruction{{
+			InstanceID: instID,
+			Nonce:      byzcoin.Nonce{},
+			Index:      0,
+			Length:     1,
+			Invoke: &byzcoin.Invoke{
+				Command: "display",
+				Args:    args,
+			},
+		}},
+	}
+	require.Nil(t, ctx.Instructions[0].SignBy(bct.gDarc.GetBaseID(), bct.signer))
+	var err error
+	_, err = bct.cl.AddTransactionAndWait(ctx, 20)
+	require.Nil(t,err)
+
+
+}
+
+
 func (bct *bcTest) creditAccountInstance(t *testing.T, instID byzcoin.InstanceID, args byzcoin.Arguments) {
 	ctx := byzcoin.ClientTransaction{
 		Instructions: []byzcoin.Instruction{{
@@ -286,28 +301,8 @@ func (bct *bcTest) creditAccountInstance(t *testing.T, instID byzcoin.InstanceID
 }
 
 
-func (bct *bcTest) displayAccountInstance(t *testing.T, instID byzcoin.InstanceID, args byzcoin.Arguments){
-	ctx := byzcoin.ClientTransaction{
-		Instructions: []byzcoin.Instruction{{
-			InstanceID: instID,
-			Nonce:      byzcoin.Nonce{},
-			Index:      0,
-			Length:     1,
-			Invoke: &byzcoin.Invoke{
-				Command: "display",
-				Args:    args,
-			},
-		}},
-	}
-	require.Nil(t, ctx.Instructions[0].SignBy(bct.gDarc.GetBaseID(), bct.signer))
-	var err error
-	_, err = bct.cl.AddTransactionAndWait(ctx, 20)
-	require.Nil(t,err)
 
-
-}
-
-func (bct *bcTest) methodCallInstance(t *testing.T, instID byzcoin.InstanceID, args byzcoin.Arguments) {
+func (bct *bcTest) transactionInstance(t *testing.T, instID byzcoin.InstanceID, args byzcoin.Arguments) {
 
 	ctx := byzcoin.ClientTransaction{
 		Instructions: []byzcoin.Instruction{{
@@ -316,7 +311,7 @@ func (bct *bcTest) methodCallInstance(t *testing.T, instID byzcoin.InstanceID, a
 			Index:      0,
 			Length:     1,
 			Invoke: &byzcoin.Invoke{
-				Command: "call",
+				Command: "transaction",
 				Args:    args,
 			},
 		}},

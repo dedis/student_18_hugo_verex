@@ -5,6 +5,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/crypto"
 	"math/big"
 	"strconv"
 
@@ -85,8 +86,6 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
 			}
 
-
-
 		case "credit":
 			memDB, err := NewMemDatabase(memDBBuff)
 			if err != nil {
@@ -119,7 +118,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
 			}
 
-		case "transaction":
+		case "call":
 			memDB, err := NewMemDatabase(memDBBuff)
 			if err != nil {
 				return nil, nil, err
@@ -151,6 +150,40 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			scs = []byzcoin.StateChange{
 				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
 			}
+		case "transaction":
+			memDB, err := NewMemDatabase(memDBBuff)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			dbBuf, err := memDB.Dump()
+			if err != nil {
+				return nil, nil, err
+			}
+			toAddressBuf := inst.Invoke.Args.Search("to")
+			if toAddressBuf == nil {
+				log.LLvl1(err)
+				return nil, nil, err
+			}
+			toAddress := common.HexToAddress(string(toAddressBuf))
+			data := inst.Invoke.Args.Search("data")
+			if data == nil {
+				log.LLvl1("no data provided in transaction")
+				data = []byte{}
+			}
+
+			tx := types.NewTransaction(0, toAddress, big.NewInt(1), 100000, big.NewInt(2000000), data)
+
+			err = sendTransactionHelper(tx)
+			if err != nil {
+				return nil, nil, err
+			}
+
+
+			scs = []byzcoin.StateChange{
+				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
+			}
+
 		}
 		scs = []byzcoin.StateChange{
 			byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, memDBBuff, darcID),
@@ -163,7 +196,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 
 }
 
-func sendTransactionHelper(author *common.Address){
+func sendTransactionHelper(tx *types.Transaction) error{
 	chainconfig := getChainConfig()
 	memDB, _ := NewMemDatabase([]byte{})
 	statedb, _ := getDB(memDB)
@@ -185,28 +218,30 @@ func sendTransactionHelper(author *common.Address){
 		Time: big.NewInt(0),
 	}
 
-	//Ethereum transaction
-	nilAddress := common.HexToAddress("0x0000000000000000000000000000000000000000")
-	var tx *types.Transaction
-
-	address1, private1 := GenerateKeys()
-	CreditAccount(statedb, address1, 10000)
-	tx = types.NewTransaction(0, nilAddress, big.NewInt(1), 100000, big.NewInt(2000000), []byte{})
-	//func SignTx(tx *Transaction, s Signer, prv *ecdsa.PrivateKey) (*Transaction, error) {
-	//var signer types.Signer = types.FrontierSigner{}
-	var signer1 types.Signer = types.HomesteadSigner{}
-	//signer1 := types.NewEIP155Signer(big.NewInt(0))
-	tx, err := types.SignTx(tx, signer1, private1)
+	//address, private := GenerateKeys()
+	//Transaction signing
+	privateKey := "a33fca62081a2665454fe844a8afbe8e2e02fb66af558e695a79d058f9042f0d"
+	private, err := crypto.HexToECDSA(privateKey)
 	if err != nil {
-		log.LLvl1(err)
+		return nil
+	}
+	address := crypto.PubkeyToAddress(private.PublicKey)
+	//CreditAccount(statedb, address, 10000)
+	//
+
+	var signer1 types.Signer = types.HomesteadSigner{}
+	tx, err = types.SignTx(tx, signer1, private)
+	if err != nil {
+		return err
 	}
 	usedGas := uint64(0)
 	ug := &usedGas
-	receipt, usedGas, err := core.ApplyTransaction(chainconfig, bc, &address1, gp, statedb, header, tx, ug, config)
-	if err !=nil{
-		log.LLvl1(err)
+	receipt, usedGas, err := core.ApplyTransaction(chainconfig, bc, &address, gp, statedb, header, tx, ug, config)
+	if err !=nil {
+		return err
 	}
 	log.LLvl1(receipt)
+	return nil
 }
 
 //createArgumentParser creates a transaction for the create method of modifiedToken
