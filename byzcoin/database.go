@@ -62,6 +62,7 @@ func (db *MemDatabase) Put(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
+	log.Print(key, value)
 	db.DB[string(key)] = common.CopyBytes(value)
 	return nil
 }

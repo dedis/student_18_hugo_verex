@@ -90,8 +90,9 @@ func TestEVMContract_Invoke_Credit(t *testing.T) {
 	_, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
 	require.Nil(t, err)
 	bct.creditAccountInstance(t, instID, args)
-	require.Nil(t, err)
-
+	time.Sleep(time.Second)
+	bct.displayAccountInstance(t, instID, args)
+	time.Sleep(time.Second)
 }
 
 func TestEVMContract_Invoke_Transaction(t *testing.T){
@@ -112,7 +113,11 @@ func TestEVMContract_Invoke_Transaction(t *testing.T){
 
 		},
 	}
+	instID := bct.createInstance(t, args)
+	_, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
+	require.Nil(t, err)
 	bct.transactionInstance(t, instID, args)
+	require.Nil(t, err)
 
 }
 
@@ -257,7 +262,7 @@ func (bct *bcTest) displayAccountInstance(t *testing.T, instID byzcoin.InstanceI
 	ctx := byzcoin.ClientTransaction{
 		Instructions: []byzcoin.Instruction{{
 			InstanceID: instID,
-			Nonce:      byzcoin.Nonce{},
+			Nonce:      byzcoin.Nonce{1},
 			Index:      0,
 			Length:     1,
 			Invoke: &byzcoin.Invoke{
@@ -266,7 +271,13 @@ func (bct *bcTest) displayAccountInstance(t *testing.T, instID byzcoin.InstanceI
 			},
 		}},
 	}
+	// And we need to sign the instruction with the signer that has his
+	// public key stored in the darc.
 	require.Nil(t, ctx.Instructions[0].SignBy(bct.gDarc.GetBaseID(), bct.signer))
+
+
+	// Sending this transaction to ByzCoin does not directly include it in the
+	// global state - first we must wait for the new block to be created.
 	var err error
 	_, err = bct.cl.AddTransactionAndWait(ctx, 20)
 	require.Nil(t,err)
@@ -279,7 +290,7 @@ func (bct *bcTest) creditAccountInstance(t *testing.T, instID byzcoin.InstanceID
 	ctx := byzcoin.ClientTransaction{
 		Instructions: []byzcoin.Instruction{{
 			InstanceID: instID,
-			Nonce:      byzcoin.Nonce{},
+			Nonce:      byzcoin.Nonce{0},
 			Index:      0,
 			Length:     1,
 			Invoke: &byzcoin.Invoke{

@@ -76,15 +76,9 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if ret == big.NewInt(0) {
 				log.LLvl1("object not found")
 			}
-			log.LLvl1(db.Exist(address))
-			log.LLvl1("the account", address.Hex(), " has ", ret, " eth")
-			dbBuf, err := memDB.Dump()
-			if err != nil {
-				return nil, nil, err
-			}
-			scs = []byzcoin.StateChange{
-				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
-			}
+			log.LLvl1("the account", address, " has ", ret, " eth")
+			return nil, nil, nil
+
 
 		case "credit":
 			memDB, err := NewMemDatabase(memDBBuff)
@@ -108,12 +102,19 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if err !=nil {
 				return nil, nil, err
 			}
-			CreditAccount(db, common.HexToAddress(string(addressBuf)), eth)
-			//db.Dump()
+			address := common.HexToAddress(string(addressBuf))
+			db.SetBalance(address, big.NewInt(1e9*eth))
+			_, err = db.Commit(true)
+			if err != nil {
+				return nil, nil ,err
+			}
+
+			//CreditAccount(db, , eth)
 			dbBuf, err := memDB.Dump()
 			if err != nil {
 				return nil, nil, err
 			}
+			log.Print(dbBuf)
 			scs = []byzcoin.StateChange{
 				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
 			}
@@ -150,6 +151,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			scs = []byzcoin.StateChange{
 				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
 			}
+
 		case "transaction":
 			memDB, err := NewMemDatabase(memDBBuff)
 			if err != nil {
@@ -165,29 +167,25 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 				log.LLvl1(err)
 				return nil, nil, err
 			}
+			//var toAddress common.Address
 			toAddress := common.HexToAddress(string(toAddressBuf))
 			data := inst.Invoke.Args.Search("data")
 			if data == nil {
 				log.LLvl1("no data provided in transaction")
 				data = []byte{}
 			}
-
 			tx := types.NewTransaction(0, toAddress, big.NewInt(1), 100000, big.NewInt(2000000), data)
-
 			err = sendTransactionHelper(tx)
 			if err != nil {
 				return nil, nil, err
 			}
-
-
 			scs = []byzcoin.StateChange{
 				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
 			}
 
 		}
-		scs = []byzcoin.StateChange{
-			byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, memDBBuff, darcID),
-		}
+		log.LLvl1(err, scs)
+
 		return
 	}
 
