@@ -67,16 +67,20 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if addressBuf == nil {
 				return nil, nil, errors.New("no address provided")
 			}
-			db, err := getDB(memDB)
+			db, err := getDB1(memDB)
 			if err !=nil {
 				return nil, nil, err
 			}
+			log.LLvl1("db", db)
 			address := common.HexToAddress(string(addressBuf))
 			ret := db.GetBalance(address)
+			log.LLvl1("db", db)
+			db.Commit(true)
+			log.LLvl1("db", db)
 			if ret == big.NewInt(0) {
 				log.LLvl1("object not found")
 			}
-			log.LLvl1("the account", address, " has ", ret, " eth")
+			log.LLvl1( address.Hex(), "balance", ret)
 			return nil, nil, nil
 
 
@@ -94,7 +98,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if value == nil {
 				return nil, nil , errors.New("no value provided")
 			}
-			db, err := getDB(memDB)
+			db, err := getDB1(memDB)
 			if err !=nil {
 				return nil, nil, err
 			}
@@ -103,7 +107,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 				return nil, nil, err
 			}
 			address := common.HexToAddress(string(addressBuf))
-			db.SetBalance(address, big.NewInt(1e9*eth))
+			db.AddBalance(address, big.NewInt(1e9*eth))
 			_, err = db.Commit(true)
 			if err != nil {
 				return nil, nil ,err
@@ -114,7 +118,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if err != nil {
 				return nil, nil, err
 			}
-			log.Print(dbBuf)
+			log.LLvl1("dump", dbBuf)
 			scs = []byzcoin.StateChange{
 				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
 			}
@@ -184,7 +188,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			}
 
 		}
-		log.LLvl1(err, scs)
+		//log.LLvl1(err, scs)
 
 		return
 	}

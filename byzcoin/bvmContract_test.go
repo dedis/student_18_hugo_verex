@@ -90,9 +90,8 @@ func TestEVMContract_Invoke_Credit(t *testing.T) {
 	_, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
 	require.Nil(t, err)
 	bct.creditAccountInstance(t, instID, args)
-	time.Sleep(time.Second)
 	bct.displayAccountInstance(t, instID, args)
-	time.Sleep(time.Second)
+
 }
 
 func TestEVMContract_Invoke_Transaction(t *testing.T){

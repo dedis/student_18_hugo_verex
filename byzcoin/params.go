@@ -1,6 +1,7 @@
 package byzcoin
 
 import (
+	"github.com/ethereum/go-ethereum/ethdb"
 	"io/ioutil"
 	"math/big"
 
@@ -117,16 +118,26 @@ func getContext() vm.Context {
 func getDB(memDb *MemDatabase) (*state.StateDB, error) {
 	db := state.NewDatabase(memDb)
 	//Creates a new state DB
-	sdb, err := state.New(common.HexToHash("0x0000000000000000000000000000000000000000"), db)
+	sdb, err := state.New(common.Hash{0x1}, db)
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		return nil, err
 	}
 	return sdb, err
 }
 
 
+func getDB1(memDb *MemDatabase) (*state.StateDB, error) {
+	db := ethdb.NewMemDatabase()
+	sdb, err := state.New(common.Hash{}, state.NewDatabase(db))
+	if err != nil {
+		return nil, err
+	}
+	return sdb, nil
+}
+
+
 func spawnEvm(memDB *MemDatabase) (*vm.EVM, error) {
-	sdb, err := getDB(memDB)
+	sdb, err := getDB1(memDB)
 	if err != nil {
 		return nil, err
 	}
