@@ -19,6 +19,8 @@ import (
 
 //ContractBvmID denotes a contract that can deploy and call an Ethereum virtual machine
 var ContractBvmID = "bvm"
+var nilAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
+var accountRef = vm.AccountRef(nilAddress)
 
 func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byzcoin.Coin) (scs []byzcoin.StateChange, cOut []byzcoin.Coin, err error) {
 
@@ -36,8 +38,8 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 	}
 
 	//Ethereum
-	nilAddress := common.HexToAddress("0x0000000000000000000000000000000000000000")
-	accountRef := vm.AccountRef(nilAddress)
+
+
 
 	switch inst.GetType() {
 
@@ -57,6 +59,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 
 	case byzcoin.InvokeType:
 		switch inst.Invoke.Command {
+
 		case "display":
 			memDB, err := NewMemDatabase(memDBBuff)
 			if err != nil {
@@ -71,12 +74,11 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if err !=nil {
 				return nil, nil, err
 			}
-			log.LLvl1("db", db)
+			//log.LLvl1("db", db)
 			address := common.HexToAddress(string(addressBuf))
 			ret := db.GetBalance(address)
-			log.LLvl1("db", db)
 			db.Commit(true)
-			log.LLvl1("db", db)
+			//log.LLvl1("db", db)
 			if ret == big.NewInt(0) {
 				log.LLvl1("object not found")
 			}
@@ -118,7 +120,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if err != nil {
 				return nil, nil, err
 			}
-			log.LLvl1("dump", dbBuf)
+			//log.LLvl1("dump", dbBuf)
 			scs = []byzcoin.StateChange{
 				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
 			}
@@ -161,35 +163,35 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if err != nil {
 				return nil, nil, err
 			}
-
+			bytecode := inst.Invoke.Args.Search("bytecode")
+			if bytecode == nil {
+				log.LLvl1("no data provided in transaction")
+				return nil, nil, err
+			}
+			deployTx := types.NewContractCreation(0, big.NewInt(0), 1e18,  big.NewInt(0), bytecode)
+			deployReceipt, err := sendTransactionHelper(deployTx, memDB)
+			contractAddress := deployReceipt.ContractAddress
+			log.LLvl1("contract deployed at: ", deployReceipt.ContractAddress.Hex())
+			if err != nil {
+				return nil, nil, err
+			}
+			create := inst.Invoke.Args.Search("create")
+			createTx := types.NewTransaction(0, contractAddress, big.NewInt(0),1E18, big.NewInt(0), create)
+			createReceipt, err := sendTransactionHelper(createTx, memDB)
+			if err != nil {
+				log.LLvl1("error minting", err)
+				return nil, nil, err
+			}
+			log.LLvl1("tokens minted, gas used",createReceipt.CumulativeGasUsed)
 			dbBuf, err := memDB.Dump()
 			if err != nil {
 				return nil, nil, err
 			}
-			toAddressBuf := inst.Invoke.Args.Search("to")
-			if toAddressBuf == nil {
-				log.LLvl1(err)
-				return nil, nil, err
-			}
-			//var toAddress common.Address
-			toAddress := common.HexToAddress(string(toAddressBuf))
-			data := inst.Invoke.Args.Search("data")
-			if data == nil {
-				log.LLvl1("no data provided in transaction")
-				data = []byte{}
-			}
-			tx := types.NewTransaction(0, toAddress, big.NewInt(1), 100000, big.NewInt(2000000), data)
-			err = sendTransactionHelper(tx)
-			if err != nil {
-				return nil, nil, err
-			}
+
 			scs = []byzcoin.StateChange{
 				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
 			}
-
 		}
-		//log.LLvl1(err, scs)
-
 		return
 	}
 
@@ -198,14 +200,16 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 
 }
 
-func sendTransactionHelper(tx *types.Transaction) error{
+func sendTransactionHelper(tx *types.Transaction, memDB *MemDatabase) (*types.Receipt, error){
 	chainconfig := getChainConfig()
-	memDB, _ := NewMemDatabase([]byte{})
 	statedb, _ := getDB(memDB)
 	config := getVMConfig()
 
+
 	//// GasPool tracks the amount of gas available during execution of the transactions in a block.
-	gp := new(core.GasPool).AddGas(uint64(800000))
+	gp := new(core.GasPool).AddGas(uint64(1e18))
+	usedGas := uint64(0)
+	ug := &usedGas
 
 	// ChainContext supports retrieving headers and consensus parameters from the
 	// current blockchain to be used during transaction processing.
@@ -216,34 +220,31 @@ func sendTransactionHelper(tx *types.Transaction) error{
 	header = &types.Header{
 		Number: big.NewInt(0),
 		Difficulty: big.NewInt(0),
-		ParentHash: common.Hash{0x00},
+		ParentHash: common.Hash{0},
 		Time: big.NewInt(0),
 	}
 
-	//address, private := GenerateKeys()
+
 	//Transaction signing
 	privateKey := "a33fca62081a2665454fe844a8afbe8e2e02fb66af558e695a79d058f9042f0d"
 	private, err := crypto.HexToECDSA(privateKey)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	address := crypto.PubkeyToAddress(private.PublicKey)
-	//CreditAccount(statedb, address, 10000)
-	//
-
+	statedb.SetBalance(address, big.NewInt(1e18))
 	var signer1 types.Signer = types.HomesteadSigner{}
 	tx, err = types.SignTx(tx, signer1, private)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	usedGas := uint64(0)
-	ug := &usedGas
-	receipt, usedGas, err := core.ApplyTransaction(chainconfig, bc, &address, gp, statedb, header, tx, ug, config)
+	receipt, usedGas, err := core.ApplyTransaction(chainconfig, bc, &nilAddress, gp, statedb, header, tx, ug, config)
 	if err !=nil {
-		return err
+		log.LLvl1("issue applying tx:", err)
+		return nil, err
 	}
-	log.LLvl1(receipt)
-	return nil
+	//log.LLvl1("tx applied")
+	return receipt, nil
 }
 
 //createArgumentParser creates a transaction for the create method of modifiedToken

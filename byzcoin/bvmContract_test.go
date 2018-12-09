@@ -95,21 +95,23 @@ func TestEVMContract_Invoke_Credit(t *testing.T) {
 }
 
 func TestEVMContract_Invoke_Transaction(t *testing.T){
+	path := "/Users/hugo/student_18_hugo_verex/contracts/ModifiedToken/"
 	log.LLvl1("test: sending transaction")
 	bct := newBCTest(t)
 	bct.local.Check = onet.CheckNone
 	defer bct.Close()
-	contractAddress := []byte("0xBd770416a3345F91E4B34576cb804a576fa48EB1")
-	data := []byte{}
+	_ , bytecode := getSmartContract(path, "ModifiedToken")
+	bytecodeBuf := []byte(bytecode)
+	createBuf, _ := getAbiCallForCreate()
 	args := byzcoin.Arguments{
 		{
-			Name: "to",
-			Value: contractAddress,
+			Name: "bytecode",
+			Value : bytecodeBuf,
+
 		},
 		{
-			Name: "data",
-			Value : data,
-
+			Name: "create",
+			Value: createBuf,
 		},
 	}
 	instID := bct.createInstance(t, args)
@@ -120,36 +122,20 @@ func TestEVMContract_Invoke_Transaction(t *testing.T){
 
 }
 
-func getAbiCallForCreate() (ba byzcoin.Arguments , err error){
+func getAbiCallForCreate() (abiCall []byte , err error){
 	abiBuf := `[{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_amount","type":"uint256"}],"name":"send","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"initialSupply","type":"uint256"},{"name":"toGiveTo","type":"address"}],"name":"create","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"account","type":"address"}],"name":"getBalance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}]`
 	methodName := "create"
-	contractAddress := []byte("0xBd770416a3345F91E4B34576cb804a576fa48EB1")
-	publicKey := common.HexToAddress("0x1111111111111111111111111111111111111111")
+	publicKey := common.HexToAddress("0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61")
 	initialSupply := int64(100)
-
 
 	ABI, err := abi.JSON(strings.NewReader(string(abiBuf)))
 	if err != nil {
 		return nil, err
-
 	}
 
-	abiCall, err := ABI.Pack(methodName, big.NewInt(initialSupply), publicKey)
+	abiCall, err = ABI.Pack(methodName, big.NewInt(initialSupply), publicKey)
 	if err != nil {
 		return nil, err
-	}
-
-	ba = byzcoin.Arguments{
-		{
-			Name: "contractAddress",
-			Value: contractAddress,
-
-		},
-		{
-			Name: "abiCall",
-			Value: abiCall,
-
-		},
 	}
 	return
 }
@@ -317,7 +303,7 @@ func (bct *bcTest) transactionInstance(t *testing.T, instID byzcoin.InstanceID, 
 	ctx := byzcoin.ClientTransaction{
 		Instructions: []byzcoin.Instruction{{
 			InstanceID: instID,
-			Nonce:      byzcoin.Nonce{},
+			Nonce:      byzcoin.Nonce{2},
 			Index:      0,
 			Length:     1,
 			Invoke: &byzcoin.Invoke{

@@ -118,7 +118,7 @@ func getContext() vm.Context {
 func getDB(memDb *MemDatabase) (*state.StateDB, error) {
 	db := state.NewDatabase(memDb)
 	//Creates a new state DB
-	sdb, err := state.New(common.Hash{0x1}, db)
+	sdb, err := state.New(common.Hash{0x0}, db)
 	if err != nil {
 		return nil, err
 	}
