@@ -100,9 +100,12 @@ func TestEVMContract_Invoke_Transaction(t *testing.T){
 	bct := newBCTest(t)
 	bct.local.Check = onet.CheckNone
 	defer bct.Close()
-	_ , bytecode := getSmartContract(path, "ModifiedToken")
+	abi , bytecode := getSmartContract(path, "ModifiedToken")
 	bytecodeBuf := []byte(bytecode)
-	createBuf, _ := getAbiCallForCreate()
+	totalSupply := big.NewInt(21000000)
+	createBuf, _ := abiMethodPack(abi,"create", totalSupply,common.HexToAddress("0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61") )
+	//transferBuf, _ := getArgsForTransfer()
+	data := []byte{}
 	args := byzcoin.Arguments{
 		{
 			Name: "bytecode",
@@ -113,6 +116,10 @@ func TestEVMContract_Invoke_Transaction(t *testing.T){
 			Name: "create",
 			Value: createBuf,
 		},
+		{
+			Name: "transfer",
+			Value: data,
+		},
 	}
 	instID := bct.createInstance(t, args)
 	_, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
@@ -122,58 +129,15 @@ func TestEVMContract_Invoke_Transaction(t *testing.T){
 
 }
 
-func getAbiCallForCreate() (abiCall []byte , err error){
-	abiBuf := `[{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_amount","type":"uint256"}],"name":"send","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"initialSupply","type":"uint256"},{"name":"toGiveTo","type":"address"}],"name":"create","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"account","type":"address"}],"name":"getBalance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}]`
-	methodName := "create"
-	publicKey := common.HexToAddress("0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61")
-	initialSupply := int64(100)
-
+func abiMethodPack(contractABI string, methodCall string,  args ...interface{}) (data []byte, err error){
+	abiBuf := []byte(contractABI)
 	ABI, err := abi.JSON(strings.NewReader(string(abiBuf)))
 	if err != nil {
 		return nil, err
 	}
-
-	abiCall, err = ABI.Pack(methodName, big.NewInt(initialSupply), publicKey)
-	if err != nil {
-		return nil, err
-	}
-	return
+	abiCall, err := ABI.Pack(methodCall, args)
+	return abiCall, nil
 }
-
-
-func getArgsForTransfer() byzcoin.Arguments{
-	abi := []byte(`[{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_amount","type":"uint256"}],"name":"send","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"success","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"initialSupply","type":"uint256"},{"name":"toGiveTo","type":"address"}],"name":"create","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"account","type":"address"}],"name":"getBalance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}]`)
-	methodName := []byte("transfer")
-	contractAddress := []byte("0xBd770416a3345F91E4B34576cb804a576fa48EB1")
-	aPublicKey := []byte("0x1111111111111111111111111111111111111111")
-	bPublicKey := []byte("0x2222222222222222222222222222222222222222")
-	args := byzcoin.Arguments{
-		{
-			Name:  "abi",
-			Value: abi,
-		},
-		{
-			Name:  "method",
-			Value: methodName,
-		},
-		{
-			Name:  "contractAddress",
-			Value: contractAddress,
-		},
-		{
-			Name: "from",
-			Value: aPublicKey,
-		},
-		{
-			Name: "to",
-			Value: bPublicKey,
-		},
-
-	}
-	return args
-
-}
-
 
 // bcTest is used here to provide some simple test structure for different
 // tests.

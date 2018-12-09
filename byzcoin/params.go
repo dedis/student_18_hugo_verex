@@ -137,7 +137,7 @@ func getDB1(memDb *MemDatabase) (*state.StateDB, error) {
 
 
 func spawnEvm(memDB *MemDatabase) (*vm.EVM, error) {
-	sdb, err := getDB1(memDB)
+	sdb, err := getDB(memDB)
 	if err != nil {
 		return nil, err
 	}

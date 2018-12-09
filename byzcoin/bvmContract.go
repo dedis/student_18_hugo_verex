@@ -70,7 +70,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if addressBuf == nil {
 				return nil, nil, errors.New("no address provided")
 			}
-			db, err := getDB1(memDB)
+			db, err := getDB(memDB)
 			if err !=nil {
 				return nil, nil, err
 			}
@@ -100,7 +100,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if value == nil {
 				return nil, nil , errors.New("no value provided")
 			}
-			db, err := getDB1(memDB)
+			db, err := getDB(memDB)
 			if err !=nil {
 				return nil, nil, err
 			}
