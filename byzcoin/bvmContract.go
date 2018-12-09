@@ -125,31 +125,26 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
 			}
 
-		case "call":
+		case "deploy":
 			memDB, err := NewMemDatabase(memDBBuff)
 			if err != nil {
 				return nil, nil, err
 			}
-			//Instantiation of BVM
-			bvm, err := spawnEvm(memDB)
+			gasLimit := uint64(1e18)
+			value := big.NewInt(0)
+			gasPrice := big.NewInt(0)
+			bytecode := inst.Invoke.Args.Search("bytecode")
+			if bytecode == nil {
+				log.LLvl1("no data provided in transaction")
+				return nil, nil, err
+			}
+			deployTx := types.NewContractCreation(0, value, gasLimit,  gasPrice, bytecode)
+			deployReceipt, err := sendTx(deployTx, memDB)
+			contractAddress := deployReceipt.ContractAddress
+			log.LLvl1("contract deployed at: ", contractAddress.Hex())
 			if err != nil {
 				return nil, nil, err
 			}
-
-			//Creating the transaction that will be sent to the bvm
-			transaction, addrContract, err := getAbiCall(inst)
-			if err !=nil {
-				return nil,nil, err
-			}
-			//Sending the transaction to the bvm
-			addressOfContract := common.HexToAddress(string(addrContract))
-			//send transaction here instead of using evm.Call
-			_, leftOverGas, err := bvm.Call(accountRef, addressOfContract, transaction, 100000000, big.NewInt(0))
-			if err != nil {
-				return nil, nil, err
-			}
-			log.LLvl1("Successful method call at address :", addressOfContract.Hex(), " left over gas: ", leftOverGas)
-			//Saving state changes in DB
 			dbBuf, err := memDB.Dump()
 			if err != nil {
 				return nil, nil, err
@@ -163,44 +158,34 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if err != nil {
 				return nil, nil, err
 			}
-			bytecode := inst.Invoke.Args.Search("bytecode")
-			if bytecode == nil {
-				log.LLvl1("no data provided in transaction")
-				return nil, nil, err
-			}
-			deployTx := types.NewContractCreation(0, big.NewInt(0), 1e18,  big.NewInt(0), bytecode)
-			deployReceipt, err := sendTransactionHelper(deployTx, memDB)
-			contractAddress := deployReceipt.ContractAddress
-			log.LLvl1("contract deployed at: ", deployReceipt.ContractAddress.Hex())
-			if err != nil {
-				return nil, nil, err
-			}
-			create := inst.Invoke.Args.Search("create")
-			createTx := types.NewTransaction(0, contractAddress, big.NewInt(0),1E18, big.NewInt(0), create)
-			createReceipt, err := sendTransactionHelper(createTx, memDB)
+			gasLimit := uint64(1e18)
+			value := big.NewInt(0)
+			gasPrice := big.NewInt(0)
+			contractAddress := inst.Invoke.Args.Search("contractAddress")
+			method := inst.Invoke.Args.Search("method")
+			newTx := types.NewTransaction(0, common.HexToAddress(string(contractAddress)), value ,gasLimit, gasPrice, method)
+			methodCallReceipt, err := sendTx(newTx, memDB)
 			if err != nil {
 				log.LLvl1("error minting", err)
 				return nil, nil, err
 			}
-			log.LLvl1("tokens minted, gas used",createReceipt.CumulativeGasUsed)
+			log.LLvl1("call to contract, gas used", methodCallReceipt.CumulativeGasUsed)
 			dbBuf, err := memDB.Dump()
 			if err != nil {
 				return nil, nil, err
 			}
-
 			scs = []byzcoin.StateChange{
 				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
 			}
 		}
 		return
 	}
-
 	err = errors.New("didn't find any instructions")
 	return
 
 }
 
-func sendTransactionHelper(tx *types.Transaction, memDB *MemDatabase) (*types.Receipt, error){
+func sendTx(tx *types.Transaction, memDB *MemDatabase) (*types.Receipt, error){
 	chainconfig := getChainConfig()
 	statedb, _ := getDB(memDB)
 	config := getVMConfig()
@@ -247,24 +232,5 @@ func sendTransactionHelper(tx *types.Transaction, memDB *MemDatabase) (*types.Re
 	return receipt, nil
 }
 
-//createArgumentParser creates a transaction for the create method of modifiedToken
-func getAbiCall(inst byzcoin.Instruction) (abiPack []byte, contractAddress []byte,  err error) {
-	arguments := inst.Invoke.Args
-	if len(arguments)<2{
-		log.LLvl1("Please provide at least a contract address and the abi call.")
-		return nil, nil, err
-	}
-	contractAddressBuf := inst.Invoke.Args.Search("contractAddress")
-	if contractAddressBuf == nil {
-		log.LLvl1(err)
-		return nil, nil, err
-	}
-	abiBuf := inst.Invoke.Args.Search("abiCall")
-	if abiBuf == nil {
-		log.LLvl1(err)
-		return nil, nil, err
-	}
 
-	return abiBuf, contractAddressBuf, nil
-}
 

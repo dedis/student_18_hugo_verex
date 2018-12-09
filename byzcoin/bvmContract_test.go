@@ -62,9 +62,6 @@ func TestEVMContract_Invoke_Display(t *testing.T){
 	_, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
 	require.Nil(t, err)
 	bct.displayAccountInstance(t, instID, args)
-	require.Nil(t, err)
-
-
 }
 
 func TestEVMContract_Invoke_Credit(t *testing.T) {
@@ -94,39 +91,52 @@ func TestEVMContract_Invoke_Credit(t *testing.T) {
 
 }
 
-func TestEVMContract_Invoke_Transaction(t *testing.T){
+func TestEVMContract_Invoke_Deploy(t *testing.T){
 	path := "/Users/hugo/student_18_hugo_verex/contracts/ModifiedToken/"
-	log.LLvl1("test: sending transaction")
+	log.LLvl1("test: contract deployment")
 	bct := newBCTest(t)
 	bct.local.Check = onet.CheckNone
 	defer bct.Close()
-	abi , bytecode := getSmartContract(path, "ModifiedToken")
+	_ , bytecode := getSmartContract(path, "ModifiedToken")
 	bytecodeBuf := []byte(bytecode)
-	totalSupply := big.NewInt(21000000)
-	createBuf, _ := abiMethodPack(abi,"create", totalSupply,common.HexToAddress("0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61") )
-	//transferBuf, _ := getArgsForTransfer()
-	data := []byte{}
 	args := byzcoin.Arguments{
 		{
 			Name: "bytecode",
 			Value : bytecodeBuf,
+		},
+	}
+	instID := bct.createInstance(t, args)
+	_, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
+	require.Nil(t, err)
+	bct.deployContractInstance(t, instID, args)
+}
 
+func TestEVMContract_Invoke_Transaction(t *testing.T){
+	path := "/Users/hugo/student_18_hugo_verex/contracts/ModifiedToken/"
+	//addressB := common.HexToAddress("0x2887A24130cACFD8f71C479d9f9Da5b9C6425CE8")
+	log.LLvl1("test: sending transaction")
+	bct := newBCTest(t)
+	bct.local.Check = onet.CheckNone
+	defer bct.Close()
+	contractAddress := []byte("0x45663483f58d687c8aF17B85cCCDD9391b567498")
+	addressA := common.HexToAddress("0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61")
+	abi , _ := getSmartContract(path, "ModifiedToken")
+	totalSupply := big.NewInt(21000000)
+	methodBuf, _ := abiMethodPack(abi,"create", totalSupply, addressA)
+	args := byzcoin.Arguments{
+		{
+			Name: "contractAddress",
+			Value: contractAddress,
 		},
 		{
-			Name: "create",
-			Value: createBuf,
-		},
-		{
-			Name: "transfer",
-			Value: data,
+			Name:  "method",
+			Value: methodBuf,
 		},
 	}
 	instID := bct.createInstance(t, args)
 	_, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
 	require.Nil(t, err)
 	bct.transactionInstance(t, instID, args)
-	require.Nil(t, err)
-
 }
 
 func abiMethodPack(contractABI string, methodCall string,  args ...interface{}) (data []byte, err error){
@@ -163,7 +173,7 @@ func newBCTest(t *testing.T) (out *bcTest) {
 	// to create and update keyValue contracts.
 	var err error
 	out.gMsg, err = byzcoin.DefaultGenesisMsg(byzcoin.CurrentVersion, out.roster,
-		[]string{"spawn:keyValue", "spawn:darc", "spawn:bvm", "invoke:display", "invoke:credit", "invoke:transaction"}, out.signer.Identity())
+		[]string{"spawn:bvm", "invoke:display", "invoke:credit", "invoke:deploy","invoke:transaction"}, out.signer.Identity())
 	require.Nil(t, err)
 	out.gDarc = &out.gMsg.GenesisDarc
 
@@ -184,7 +194,7 @@ func (bct *bcTest) createInstance(t *testing.T, args byzcoin.Arguments) byzcoin.
 	ctx := byzcoin.ClientTransaction{
 		Instructions: []byzcoin.Instruction{{
 			InstanceID: byzcoin.NewInstanceID(bct.gDarc.GetBaseID()),
-			Nonce:      byzcoin.Nonce{},
+			Nonce:      byzcoin.Nonce{0},
 			Index:      0,
 			Length:     1,
 			Spawn: &byzcoin.Spawn{
@@ -239,7 +249,7 @@ func (bct *bcTest) creditAccountInstance(t *testing.T, instID byzcoin.InstanceID
 	ctx := byzcoin.ClientTransaction{
 		Instructions: []byzcoin.Instruction{{
 			InstanceID: instID,
-			Nonce:      byzcoin.Nonce{0},
+			Nonce:      byzcoin.Nonce{2},
 			Index:      0,
 			Length:     1,
 			Invoke: &byzcoin.Invoke{
@@ -260,6 +270,32 @@ func (bct *bcTest) creditAccountInstance(t *testing.T, instID byzcoin.InstanceID
 	require.Nil(t, err)
 }
 
+func (bct *bcTest) deployContractInstance(t *testing.T, instID byzcoin.InstanceID, args byzcoin.Arguments) {
+
+	ctx := byzcoin.ClientTransaction{
+		Instructions: []byzcoin.Instruction{{
+			InstanceID: instID,
+			Nonce:      byzcoin.Nonce{3},
+			Index:      0,
+			Length:     1,
+			Invoke: &byzcoin.Invoke{
+				Command: "deploy",
+				Args:    args,
+			},
+		}},
+	}
+
+	// And we need to sign the instruction with the signer that has his
+	// public key stored in the darc.
+	require.Nil(t, ctx.Instructions[0].SignBy(bct.gDarc.GetBaseID(), bct.signer))
+
+	// Sending this transaction to ByzCoin does not directly include it in the
+	// global state - first we must wait for the new block to be created.
+	var err error
+	_, err = bct.cl.AddTransactionAndWait(ctx, 20)
+	require.Nil(t, err)
+}
+
 
 
 func (bct *bcTest) transactionInstance(t *testing.T, instID byzcoin.InstanceID, args byzcoin.Arguments) {
@@ -267,7 +303,7 @@ func (bct *bcTest) transactionInstance(t *testing.T, instID byzcoin.InstanceID, 
 	ctx := byzcoin.ClientTransaction{
 		Instructions: []byzcoin.Instruction{{
 			InstanceID: instID,
-			Nonce:      byzcoin.Nonce{2},
+			Nonce:      byzcoin.Nonce{4},
 			Index:      0,
 			Length:     1,
 			Invoke: &byzcoin.Invoke{
