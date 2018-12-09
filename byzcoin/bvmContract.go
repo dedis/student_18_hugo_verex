@@ -37,10 +37,6 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 		return
 	}
 
-	//Ethereum
-
-
-
 	switch inst.GetType() {
 
 	case byzcoin.SpawnType:
@@ -74,7 +70,6 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if err !=nil {
 				return nil, nil, err
 			}
-			//log.LLvl1("db", db)
 			address := common.HexToAddress(string(addressBuf))
 			ret := db.GetBalance(address)
 			db.Commit(true)
@@ -109,12 +104,11 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 				return nil, nil, err
 			}
 			address := common.HexToAddress(string(addressBuf))
-			db.AddBalance(address, big.NewInt(1e9*eth))
+			db.SetBalance(address, big.NewInt(1e9*eth))
 			_, err = db.Commit(true)
 			if err != nil {
 				return nil, nil ,err
 			}
-
 			//CreditAccount(db, , eth)
 			dbBuf, err := memDB.Dump()
 			if err != nil {
@@ -228,7 +222,6 @@ func sendTx(tx *types.Transaction, memDB *MemDatabase) (*types.Receipt, error){
 		log.LLvl1("issue applying tx:", err)
 		return nil, err
 	}
-	//log.LLvl1("tx applied")
 	return receipt, nil
 }
 

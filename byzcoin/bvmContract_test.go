@@ -92,12 +92,11 @@ func TestEVMContract_Invoke_Credit(t *testing.T) {
 }
 
 func TestEVMContract_Invoke_Deploy(t *testing.T){
-	path := "/Users/hugo/student_18_hugo_verex/contracts/ModifiedToken/"
 	log.LLvl1("test: contract deployment")
 	bct := newBCTest(t)
 	bct.local.Check = onet.CheckNone
 	defer bct.Close()
-	_ , bytecode := getSmartContract(path, "ModifiedToken")
+	_ , bytecode := getSmartContract("ModifiedToken")
 	bytecodeBuf := []byte(bytecode)
 	args := byzcoin.Arguments{
 		{
@@ -112,7 +111,6 @@ func TestEVMContract_Invoke_Deploy(t *testing.T){
 }
 
 func TestEVMContract_Invoke_Transaction(t *testing.T){
-	path := "/Users/hugo/student_18_hugo_verex/contracts/ModifiedToken/"
 	//addressB := common.HexToAddress("0x2887A24130cACFD8f71C479d9f9Da5b9C6425CE8")
 	log.LLvl1("test: sending transaction")
 	bct := newBCTest(t)
@@ -120,7 +118,7 @@ func TestEVMContract_Invoke_Transaction(t *testing.T){
 	defer bct.Close()
 	contractAddress := []byte("0x45663483f58d687c8aF17B85cCCDD9391b567498")
 	addressA := common.HexToAddress("0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61")
-	abi , _ := getSmartContract(path, "ModifiedToken")
+	abi , _ := getSmartContract("ModifiedToken")
 	totalSupply := big.NewInt(21000000)
 	methodBuf, _ := abiMethodPack(abi,"create", totalSupply, addressA)
 	args := byzcoin.Arguments{

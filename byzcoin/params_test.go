@@ -27,10 +27,8 @@ func TestTokenContract(t *testing.T) {
 		log.Lvl2("tried to get hash")
 		return common.HexToHash("0x0000000000000000000000000000000000000000")
 	}
-
-	contractsPath := "/Users/hugo/student_18_hugo_verex/contracts/ModifiedToken/"
 	log.LLvl1("test: evm creation and function calls")
-	simpleAbi, simpleBin := getSmartContract(contractsPath, "ModifiedToken")
+	simpleAbi, simpleBin := getSmartContract( "ModifiedToken")
 
 
 	aPublicKey := common.HexToAddress("0x1111111111111111111111111111111111111111")

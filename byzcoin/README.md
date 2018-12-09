@@ -3,9 +3,10 @@
 ## Byzcoin Virtual Machine instructions
 
 - `Spawn` Instantiate a new ledger for testing the BVM
+- `Invoke:display` display the balance of a given account
+- `Invoke:credit` credits an address with a given amount
 - `Invoke:deploy` deploys a contract using as argument the compiled bytecode
-- `Ìnvoke:call` calls a deployed contract using a contract address, an [ABI](https://solidity.readthedocs.io/en/develop/abi-spec.html), the name of the function
-to call and the arguments of said function
+- `Invoke:call` calls a contract using the contract address and the method call data
 
 
 

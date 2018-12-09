@@ -4,6 +4,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"io/ioutil"
 	"math/big"
+	"os"
 
 	"github.com/dedis/onet/log"
 
@@ -14,18 +15,23 @@ import (
 )
 
 //returns abi and bytecode of solidity contract
-func getSmartContract(path string, nameOfContract string) (string, string) {
-	abi, err := ioutil.ReadFile(path + nameOfContract + "_sol_" + nameOfContract + ".abi")
+func getSmartContract(nameOfContract string) (string, string) {
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	contractPath := dir + "/contracts/" + nameOfContract+ "/"+ nameOfContract + "_sol_" + nameOfContract
+	abi, err := ioutil.ReadFile(contractPath+ ".abi")
 	if err != nil {
 		log.LLvl1("Problem generating contract ABI")
 	} else {
-		log.LLvl1("ABI generated")
+		log.Lvl1("ABI generated")
 	}
-	bin, err := ioutil.ReadFile(path + nameOfContract + "_sol_" + nameOfContract + ".bin")
+	bin, err := ioutil.ReadFile(contractPath + ".bin")
 	if err != nil {
 		log.LLvl1("Problem generating contract BIN")
 	} else {
-		log.LLvl1("BIN generated")
+		log.Lvl1("BIN generated")
 	}
 	return string(abi), string(bin)
 }

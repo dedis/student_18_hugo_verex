@@ -41,9 +41,13 @@ The current tests will deploy and call the `ModifiedToken.sol` contract.
 
 `go test -run Spawn` will test spawning a byzcoin ledger
 
-`go test -run Invoke_Deploy` will test deploying the contract
+`go test -run Display` will display the test account balance
 
-`go test -run Invoke_Call` will test the minting of new tokens from the above contract
+`go test -run Credit` will credit the test account
+
+`go test -run Deploy` will test deploying the contract
+
+`go test -run Transaction` will test the minting of new tokens from the above contract
 
 
 
