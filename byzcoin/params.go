@@ -1,7 +1,6 @@
 package byzcoin
 
 import (
-	"github.com/ethereum/go-ethereum/ethdb"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -128,19 +127,8 @@ func getDB(memDb *MemDatabase) (*state.StateDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return sdb, err
-}
-
-
-func getDB1(memDb *MemDatabase) (*state.StateDB, error) {
-	db := ethdb.NewMemDatabase()
-	sdb, err := state.New(common.Hash{}, state.NewDatabase(db))
-	if err != nil {
-		return nil, err
-	}
 	return sdb, nil
 }
-
 
 func spawnEvm(memDB *MemDatabase) (*vm.EVM, error) {
 	sdb, err := getDB(memDB)
