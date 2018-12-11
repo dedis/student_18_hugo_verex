@@ -120,21 +120,25 @@ func getContext() vm.Context {
 
 }
 
-func getDB(memDb *MemDatabase) (*state.StateDB, error) {
-	db := state.NewDatabase(memDb)
-	//Creates a new state DB
-	sdb, err := state.New(common.Hash{0x0}, db)
+func getDB(es EVMStruct) (*state.StateDB, error) {
+	log.LLvl1("here mamen?")
+	memDB, err := NewMemDatabase(es.DbBuf)
+	if err != nil {
+		return nil, err
+	}
+	db := state.NewDatabase(memDB)
+	sdb, err := state.New(es.RootHash, db)
 	if err != nil {
 		return nil, err
 	}
 	return sdb, nil
 }
 
-func spawnEvm(memDB *MemDatabase) (*vm.EVM, error) {
-	sdb, err := getDB(memDB)
+func spawnEvm() (*state.StateDB, *vm.EVM, error) {
+	sdb, err := getDB(EVMStruct{DbBuf:[]byte{}})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	bvm := vm.NewEVM(getContext(), sdb, getChainConfig(), getVMConfig())
-	return bvm, nil
+	return sdb, bvm, nil
 }

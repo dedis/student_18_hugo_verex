@@ -57,13 +57,10 @@ func TestTokenContract(t *testing.T) {
 	transferTests, err := abi.Pack("transfer", aPublicKey, bPublicKey, uint64(1))
 	require.Nil(t, err)
 
-
-
 	//Various setups
 	log.Lvl3("DB setup")
-	emptyData := []byte{}
-	memDb, _ := NewMemDatabase(emptyData)
-	sdb, _ := getDB(memDb)
+	sdb, err := getDB(EVMStruct{DbBuf:[]byte{}})
+	require.Nil(t, err)
 	//sdb.SetBalance(aPublicKey, big.NewInt(1000000000000))
 	log.Lvl2("Setting up context")
 	ctx := vm.Context{CanTransfer: canTransfer, Transfer: transfer, GetHash: gethash, Origin: aPublicKey, GasPrice: big.NewInt(1), Coinbase: aPublicKey, GasLimit: 10000000000, BlockNumber: big.NewInt(0), Time: big.NewInt(1), Difficulty: big.NewInt(1)}

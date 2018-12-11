@@ -2,10 +2,11 @@ package byzcoin
 
 import (
 	"errors"
+	"github.com/dedis/protobuf"
 	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/crypto"
 	"math/big"
 	"strconv"
 
@@ -29,44 +30,54 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 	if err != nil {
 		return
 	}
-	//Data to be stored in the memDB must be kept in the memDBBuffer
-	var memDBBuff []byte
+	var es EVMStruct
 	var darcID darc.ID
-	memDBBuff, _, darcID, err = cdb.GetValues(inst.InstanceID.Slice())
+	var EVMStructBuf []byte
+
+	EVMStructBuf, _, darcID, err = cdb.GetValues(inst.InstanceID.Slice())
 	if err != nil {
 		return
 	}
 
+
+
+
 	switch inst.GetType() {
 
 	case byzcoin.SpawnType:
-		memDB, _ := NewMemDatabase([]byte{})
+		log.LLvl1("evm was spawned correctly")
+		db, _, err := spawnEvm()
+		if err != nil{
+			return nil, nil, err
+		}
+		es.RootHash, err = db.Commit(true)
 		if err != nil {
 			return nil, nil, err
 		}
-		log.LLvl1("evm was spawned correctly")
-		spawnEvm(memDB)
-		dbBuff, _ := memDB.Dump()
+		es.DbBuf = db.Dump()
+		esBuf, err := protobuf.Encode(&es)
 		instID := inst.DeriveID("")
+
 		scs = []byzcoin.StateChange{
-			byzcoin.NewStateChange(byzcoin.Create, instID, ContractBvmID, dbBuff, darcID),
+			byzcoin.NewStateChange(byzcoin.Create, instID, ContractBvmID, esBuf, darcID),
 		}
-		return
+		return  scs, cOut, nil
 
 	case byzcoin.InvokeType:
+
+		err = protobuf.Decode(EVMStructBuf, &es)
+		if err != nil {
+			log.LLvl1(err, EVMStructBuf)
+			return
+		}
 		switch inst.Invoke.Command {
 
 		case "display":
-			memDB, err := NewMemDatabase(memDBBuff)
-			if err != nil {
-				log.LLvl1("problem generating DB")
-				return nil, nil, err
-			}
 			addressBuf := inst.Invoke.Args.Search("address")
 			if addressBuf == nil {
 				return nil, nil, errors.New("no address provided")
 			}
-			db, err := getDB(memDB)
+			db, err := getDB(es)
 			if err !=nil {
 				return nil, nil, err
 			}
@@ -82,11 +93,6 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 
 
 		case "credit":
-			memDB, err := NewMemDatabase(memDBBuff)
-			if err != nil {
-				log.LLvl1("problem generating DB")
-				return nil, nil, err
-			}
 			addressBuf := inst.Invoke.Args.Search("address")
 			if addressBuf == nil {
 				return nil, nil, errors.New("no address provided")
@@ -95,8 +101,9 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if value == nil {
 				return nil, nil , errors.New("no value provided")
 			}
-			db, err := getDB(memDB)
+			db, err := getDB(es)
 			if err !=nil {
+				log.Error()
 				return nil, nil, err
 			}
 			eth, err := strconv.ParseInt(string(value), 10, 64)
@@ -106,22 +113,24 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			address := common.HexToAddress(string(addressBuf))
 			db.SetBalance(address, big.NewInt(1*eth))
 			log.LLvl1(address.Hex(), "balance set", db.GetBalance(address))
-			_, err = db.Commit(true)
+			es.RootHash, err = db.Commit(true)
 			if err != nil {
+				log.Error()
 				return nil, nil ,err
 			}
-			//CreditAccount(db, , eth)
-			dbBuf, err := memDB.Dump()
+			es.DbBuf = db.Dump()
+			esBuf, err := protobuf.Encode(&es)
 			if err != nil {
-				return nil, nil, err
+				log.Error()
+				return nil, nil , err
 			}
 			scs = []byzcoin.StateChange{
-				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
+				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, esBuf, darcID),
 			}
 
 		case "transaction":
-			memDB, err := NewMemDatabase(memDBBuff)
-			if err != nil {
+			db, err := getDB(es)
+			if err != nil{
 				return nil, nil, err
 			}
 			txBuffer := inst.Invoke.Args.Search("tx")
@@ -134,7 +143,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if err != nil {
 				return nil, nil, err
 			}
-			transactionReceipt, err := sendTx(&ethTx, memDB)
+			transactionReceipt, err := sendTx(&ethTx, db)
 			if err != nil {
 				log.LLvl1("error issuing transaction:", err)
 				return nil, nil, err
@@ -144,13 +153,14 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if transactionReceipt.ContractAddress.Hex() != nilAddress.Hex() {
 				log.LLvl1("contract deployed at:", transactionReceipt.ContractAddress.Hex())
 			}
-
-			dbBuf, err := memDB.Dump()
+			es.RootHash, _ = db.Commit(true)
+			es.DbBuf = db.Dump()
+			esBuf, err := protobuf.Encode(&es)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil , err
 			}
 			scs = []byzcoin.StateChange{
-				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
+				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, esBuf, darcID),
 			}
 
 		}
@@ -161,9 +171,8 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 
 }
 
-func sendTx(tx *types.Transaction, memDB *MemDatabase) (*types.Receipt, error){
+func sendTx(tx *types.Transaction, db *state.StateDB) (*types.Receipt, error){
 	chainconfig := getChainConfig()
-	statedb, _ := getDB(memDB)
 	config := getVMConfig()
 
 
@@ -185,26 +194,18 @@ func sendTx(tx *types.Transaction, memDB *MemDatabase) (*types.Receipt, error){
 		Time: big.NewInt(0),
 	}
 
-
-	//Transaction signing
-	privateKey := "a33fca62081a2665454fe844a8afbe8e2e02fb66af558e695a79d058f9042f0d"
-	private, err := crypto.HexToECDSA(privateKey)
-	if err != nil {
-		return nil, err
-	}
-	address := crypto.PubkeyToAddress(private.PublicKey)
-	statedb.SetBalance(address, big.NewInt(1e18))
-	var signer1 types.Signer = types.HomesteadSigner{}
-	tx, err = types.SignTx(tx, signer1, private)
-	if err != nil {
-		return nil, err
-	}
-	receipt, usedGas, err := core.ApplyTransaction(chainconfig, bc, &nilAddress, gp, statedb, header, tx, ug, config)
+	receipt, usedGas, err := core.ApplyTransaction(chainconfig, bc, &nilAddress, gp, db, header, tx, ug, config)
 	if err !=nil {
-		log.LLvl1("issue applying tx:", err)
+		log.Error()
 		return nil, err
 	}
 	return receipt, nil
+}
+
+
+type EVMStruct struct {
+	DbBuf []byte
+	RootHash common.Hash
 }
 
 
