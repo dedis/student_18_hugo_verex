@@ -124,16 +124,18 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if err != nil {
 				return nil, nil, err
 			}
-			gasLimit := uint64(1e18)
-			value := big.NewInt(0)
-			gasPrice := big.NewInt(0)
-			bytecode := inst.Invoke.Args.Search("bytecode")
-			if bytecode == nil {
-				log.LLvl1("no data provided in transaction")
+
+			txBuffer := inst.Invoke.Args.Search("tx")
+			if txBuffer == nil {
+				log.LLvl1("no transaction provided in byzcoin transaction")
 				return nil, nil, err
 			}
-			deployTx := types.NewContractCreation(0, value, gasLimit,  gasPrice, bytecode)
-			deployReceipt, err := sendTx(deployTx, memDB)
+			var ethTx types.Transaction
+			err = ethTx.UnmarshalJSON(txBuffer)
+			if err != nil {
+				return nil, nil, err
+			}
+			deployReceipt, err := sendTx(&ethTx, memDB)
 			contractAddress := deployReceipt.ContractAddress
 			log.LLvl1("contract deployed at: ", contractAddress.Hex())
 			if err != nil {

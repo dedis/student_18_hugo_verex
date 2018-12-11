@@ -2,6 +2,8 @@ package byzcoin
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"math/big"
 	"strings"
 	"testing"
@@ -19,6 +21,11 @@ import (
 	"github.com/dedis/cothority/byzcoin"
 	"github.com/dedis/cothority/darc"
 	"github.com/dedis/onet"
+)
+
+var (
+
+
 )
 
 func TestEVMContract_Spawn(t *testing.T) {
@@ -97,15 +104,25 @@ func TestEVMContract_Invoke_Deploy(t *testing.T){
 	bct.local.Check = onet.CheckNone
 	defer bct.Close()
 	_ , bytecode := getSmartContract("ModifiedToken")
-	bytecodeBuf := []byte(bytecode)
+	gasLimit := uint64(1e18)
+	value := big.NewInt(0)
+	gasPrice := big.NewInt(0)
+	deployTx := types.NewContractCreation(0, value, gasLimit,  gasPrice, []byte(bytecode))
+	private, err := crypto.HexToECDSA("a33fca62081a2665454fe844a8afbe8e2e02fb66af558e695a79d058f9042f0d")
+	require.Nil(t, err)
+	var signer1 types.Signer = types.HomesteadSigner{}
+	deployTx, err = types.SignTx(deployTx, signer1, private)
+	require.Nil(t, err)
+	signedTxBuffer, err := deployTx.MarshalJSON()
+	require.Nil(t, err)
 	args := byzcoin.Arguments{
 		{
-			Name: "bytecode",
-			Value : bytecodeBuf,
+			Name: "tx",
+			Value : signedTxBuffer,
 		},
 	}
 	instID := bct.createInstance(t, args)
-	_, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
+	_, err = bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
 	require.Nil(t, err)
 	bct.deployContractInstance(t, instID, args)
 }
@@ -116,23 +133,30 @@ func TestEVMContract_Invoke_Transaction(t *testing.T){
 	bct := newBCTest(t)
 	bct.local.Check = onet.CheckNone
 	defer bct.Close()
+	gasLimit := uint64(1e18)
+	value := big.NewInt(0)
+	gasPrice := big.NewInt(0)
 	contractAddress := []byte("0x45663483f58d687c8aF17B85cCCDD9391b567498")
 	addressA := common.HexToAddress("0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61")
-	abi , _ := getSmartContract("ModifiedToken")
 	totalSupply := big.NewInt(21000000)
+	abi , _ := getSmartContract("ModifiedToken")
 	methodBuf, _ := abiMethodPack(abi,"create", totalSupply, addressA)
+	generalTx := types.NewTransaction(0, common.HexToAddress(string(contractAddress)), value ,gasLimit, gasPrice, methodBuf)
+	var signer1 types.Signer = types.HomesteadSigner{}
+	private, err := crypto.HexToECDSA("a33fca62081a2665454fe844a8afbe8e2e02fb66af558e695a79d058f9042f0d")
+	require.Nil(t, err)
+	generalTx, err = types.SignTx(generalTx, signer1, private)
+	require.Nil(t, err)
+	signedTxBuffer, err := generalTx.MarshalJSON()
+	require.Nil(t, err)
 	args := byzcoin.Arguments{
 		{
-			Name: "contractAddress",
-			Value: contractAddress,
-		},
-		{
-			Name:  "method",
-			Value: methodBuf,
+			Name:  "tx",
+			Value: signedTxBuffer,
 		},
 	}
 	instID := bct.createInstance(t, args)
-	_, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
+	_, err = bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
 	require.Nil(t, err)
 	bct.transactionInstance(t, instID, args)
 }
