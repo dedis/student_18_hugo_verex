@@ -104,43 +104,13 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 				return nil, nil, err
 			}
 			address := common.HexToAddress(string(addressBuf))
-			db.SetBalance(address, big.NewInt(1e9*eth))
+			db.SetBalance(address, big.NewInt(1*eth))
+			log.LLvl1(address.Hex(), "balance set", db.GetBalance(address))
 			_, err = db.Commit(true)
 			if err != nil {
 				return nil, nil ,err
 			}
 			//CreditAccount(db, , eth)
-			dbBuf, err := memDB.Dump()
-			if err != nil {
-				return nil, nil, err
-			}
-			//log.LLvl1("dump", dbBuf)
-			scs = []byzcoin.StateChange{
-				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
-			}
-
-		case "deploy":
-			memDB, err := NewMemDatabase(memDBBuff)
-			if err != nil {
-				return nil, nil, err
-			}
-
-			txBuffer := inst.Invoke.Args.Search("tx")
-			if txBuffer == nil {
-				log.LLvl1("no transaction provided in byzcoin transaction")
-				return nil, nil, err
-			}
-			var ethTx types.Transaction
-			err = ethTx.UnmarshalJSON(txBuffer)
-			if err != nil {
-				return nil, nil, err
-			}
-			deployReceipt, err := sendTx(&ethTx, memDB)
-			contractAddress := deployReceipt.ContractAddress
-			log.LLvl1("contract deployed at: ", contractAddress.Hex())
-			if err != nil {
-				return nil, nil, err
-			}
 			dbBuf, err := memDB.Dump()
 			if err != nil {
 				return nil, nil, err
@@ -154,18 +124,27 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if err != nil {
 				return nil, nil, err
 			}
-			gasLimit := uint64(1e18)
-			value := big.NewInt(0)
-			gasPrice := big.NewInt(0)
-			contractAddress := inst.Invoke.Args.Search("contractAddress")
-			method := inst.Invoke.Args.Search("method")
-			newTx := types.NewTransaction(0, common.HexToAddress(string(contractAddress)), value ,gasLimit, gasPrice, method)
-			methodCallReceipt, err := sendTx(newTx, memDB)
-			if err != nil {
-				log.LLvl1("error minting", err)
+			txBuffer := inst.Invoke.Args.Search("tx")
+			if txBuffer == nil {
+				log.LLvl1("no transaction provided in byzcoin transaction")
 				return nil, nil, err
 			}
-			log.LLvl1("call to contract, gas used", methodCallReceipt.CumulativeGasUsed)
+			var ethTx types.Transaction
+			err = ethTx.UnmarshalJSON(txBuffer)
+			if err != nil {
+				return nil, nil, err
+			}
+			transactionReceipt, err := sendTx(&ethTx, memDB)
+			if err != nil {
+				log.LLvl1("error issuing transaction:", err)
+				return nil, nil, err
+			}
+			log.LLvl1("successful new transaction:", transactionReceipt.TxHash.Hex())
+			log.LLvl1("gas used:", transactionReceipt.CumulativeGasUsed)
+			if transactionReceipt.ContractAddress.Hex() != nilAddress.Hex() {
+				log.LLvl1("contract deployed at:", transactionReceipt.ContractAddress.Hex())
+			}
+
 			dbBuf, err := memDB.Dump()
 			if err != nil {
 				return nil, nil, err
@@ -173,6 +152,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			scs = []byzcoin.StateChange{
 				byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID, ContractBvmID, dbBuf, darcID),
 			}
+
 		}
 		return
 	}
