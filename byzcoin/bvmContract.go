@@ -39,9 +39,6 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 		return
 	}
 
-
-
-
 	switch inst.GetType() {
 
 	case byzcoin.SpawnType:
@@ -57,7 +54,6 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 		es.DbBuf = db.Dump()
 		esBuf, err := protobuf.Encode(&es)
 		instID := inst.DeriveID("")
-
 		scs = []byzcoin.StateChange{
 			byzcoin.NewStateChange(byzcoin.Create, instID, ContractBvmID, esBuf, darcID),
 		}
@@ -67,9 +63,10 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 
 		err = protobuf.Decode(EVMStructBuf, &es)
 		if err != nil {
-			log.LLvl1(err, EVMStructBuf)
+			log.LLvl1("error decoding", err, EVMStructBuf)
 			return
 		}
+
 		switch inst.Invoke.Command {
 
 		case "display":

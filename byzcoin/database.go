@@ -18,6 +18,7 @@ package byzcoin
 
 import (
 	"errors"
+	"github.com/ethereum/go-ethereum/core/state"
 	"sync"
 
 	"github.com/dedis/onet/log"
@@ -33,13 +34,23 @@ type MemDatabase struct {
 	lock sync.RWMutex
 }
 
+
 //NewMemDatabase creates a new memory database
 func NewMemDatabase(data []byte) (*MemDatabase, error) {
 	DB := &MemDatabase{}
-
 	err := protobuf.Decode(data, DB)
 	if err != nil {
-		log.Lvl1("Error with memory database", err)
+		log.LLvl1("Error with memory database", err)
+		return nil, err
+	}
+	return DB, nil
+}
+
+func NewStateDatabase(data []byte) (*state.StateDB, error) {
+	DB := &state.StateDB{}
+	err := protobuf.Decode(data, DB)
+	if err != nil {
+		log.LLvl1("Error with state database", err)
 		return nil, err
 	}
 	return DB, nil

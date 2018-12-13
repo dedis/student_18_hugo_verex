@@ -1,9 +1,12 @@
 package byzcoin
 
 import (
+	"github.com/dedis/protobuf"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"io/ioutil"
 	"math/big"
 	"os"
+	"reflect"
 
 	"github.com/dedis/onet/log"
 
@@ -121,18 +124,64 @@ func getContext() vm.Context {
 }
 
 func getDB(es EVMStruct) (*state.StateDB, error) {
-	log.LLvl1("here mamen?")
 	memDB, err := NewMemDatabase(es.DbBuf)
 	if err != nil {
+		log.LLvl1("Error creating memDB", err)
 		return nil, err
 	}
 	db := state.NewDatabase(memDB)
+
 	sdb, err := state.New(es.RootHash, db)
 	if err != nil {
+		log.LLvl1("Error creating state db")
 		return nil, err
 	}
 	return sdb, nil
 }
+
+//Tries to decode the state change buffer into an ethdb.Database structure
+func getDB1(es EVMStruct) (*state.StateDB, error) {
+	log.LLvl1("data in get db", es.DbBuf)
+	var edb ethdb.Database
+	err := protobuf.Decode(es.DbBuf, edb)
+	if err!= nil {
+		log.LLvl1("problem decoding into eth db", err)
+		return nil, err
+	}
+	db := state.NewDatabase(edb)
+	log.LLvl1("database recovered from EDB", db)
+	log.LLvl1("recovering with root hash", es.RootHash.Hex())
+	sdb , err := state.New(es.RootHash, db)
+	if err !=nil {
+		log.LLvl1("problem creating state db",err)
+		return nil, err
+	}
+	log.LLvl1("recovered sdb", sdb)
+	return sdb, err
+}
+
+//Tries to decode directly into a new state.stateDB object using the NewStateDatabase function and then using the underlying database to create the final object
+func getDB2(es EVMStruct) (*state.StateDB, error) {
+	sdb1, err := NewStateDatabase(es.DbBuf)
+	if err != nil {
+		log.LLvl1("Error creating stateDB", err)
+		return nil, err
+	}
+	log.LLvl1("state db type", reflect.TypeOf(sdb1))
+	log.LLvl1("under state db",reflect.TypeOf(sdb1.Database()))
+	xdb, err := NewMemDatabase([]byte{})
+	log.LLvl1("real db",reflect.TypeOf(state.NewDatabase(xdb)))
+	final, err := state.New(es.RootHash, sdb1.Database())
+	if err != nil {
+		log.LLvl1("Error creating statedb", err)
+		return nil, err
+	}
+	return final, nil
+}
+
+
+
+
 
 func spawnEvm() (*state.StateDB, *vm.EVM, error) {
 	sdb, err := getDB(EVMStruct{DbBuf:[]byte{}})

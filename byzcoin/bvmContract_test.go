@@ -21,11 +21,6 @@ import (
 	"github.com/dedis/onet"
 )
 
-var (
-
-
-)
-
 func TestEVMContract_Spawn(t *testing.T) {
 	log.LLvl1("test: instance creation")
 	// Create a new ledger and prepare for proper closing
