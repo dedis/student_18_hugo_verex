@@ -77,40 +77,37 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if addressBuf == nil {
 				return nil, nil, errors.New("no address provided")
 			}
+			address := common.HexToAddress(string(addressBuf))
 			db, err := getDB(es)
 			if err !=nil {
 				return nil, nil, err
 			}
-			address := common.HexToAddress(string(addressBuf))
 			ret := db.GetBalance(address)
-			db.Commit(true)
-			//log.LLvl1("db", db)
 			if ret == big.NewInt(0) {
-				log.LLvl1("object not found")
+				log.LLvl1("balance empty")
 			}
 			log.LLvl1( address.Hex(), "balance", ret)
 			return nil, nil, nil
-
 
 		case "credit":
 			addressBuf := inst.Invoke.Args.Search("address")
 			if addressBuf == nil {
 				return nil, nil, errors.New("no address provided")
 			}
+			address := common.HexToAddress(string(addressBuf))
 			value := inst.Invoke.Args.Search("value")
 			if value == nil {
 				return nil, nil , errors.New("no value provided")
+			}
+			eth, err := strconv.ParseInt(string(value), 10, 64)
+			if err !=nil {
+				return nil, nil, err
 			}
 			db, err := getDB(es)
 			if err !=nil {
 				log.Error()
 				return nil, nil, err
 			}
-			eth, err := strconv.ParseInt(string(value), 10, 64)
-			if err !=nil {
-				return nil, nil, err
-			}
-			address := common.HexToAddress(string(addressBuf))
 			db.SetBalance(address, big.NewInt(1*eth))
 			log.LLvl1(address.Hex(), "balance set", db.GetBalance(address))
 			es.RootHash, err = db.Commit(true)

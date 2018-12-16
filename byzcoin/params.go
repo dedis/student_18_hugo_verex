@@ -121,7 +121,6 @@ func getContext() vm.Context {
 }
 
 func getDB(es EVMStruct) (*state.StateDB, error) {
-	log.LLvl1("here mamen?")
 	memDB, err := NewMemDatabase(es.DbBuf)
 	if err != nil {
 		return nil, err
