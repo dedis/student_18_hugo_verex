@@ -43,7 +43,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 
 	case byzcoin.SpawnType:
 		log.LLvl1("evm was spawned correctly")
-		db, _, err := spawnEvm()
+		memdb, db, _, err := spawnEvm()
 		if err != nil{
 			return nil, nil, err
 		}
@@ -51,7 +51,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 		if err != nil {
 			return nil, nil, err
 		}
-		es.DbBuf = db.Dump()
+		es.MemDbBuf = memdb.Dump()
 		esBuf, err := protobuf.Encode(&es)
 		instID := inst.DeriveID("")
 		scs = []byzcoin.StateChange{
@@ -74,7 +74,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if addressBuf == nil {
 				return nil, nil, errors.New("no address provided")
 			}
-			db, err := getDB(es)
+			memdb, db, err := getDB(es)
 			if err !=nil {
 				return nil, nil, err
 			}
@@ -98,7 +98,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if value == nil {
 				return nil, nil , errors.New("no value provided")
 			}
-			db, err := getDB(es)
+			memdb, db, err := getDB(es)
 			if err !=nil {
 				log.Error()
 				return nil, nil, err
@@ -115,7 +115,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 				log.Error()
 				return nil, nil ,err
 			}
-			es.DbBuf = db.Dump()
+			es.DbBuf = memdb.Dump()
 			esBuf, err := protobuf.Encode(&es)
 			if err != nil {
 				log.Error()

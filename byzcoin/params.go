@@ -123,20 +123,20 @@ func getContext() vm.Context {
 
 }
 
-func getDB(es EVMStruct) (*state.StateDB, error) {
+func getDB(es EVMStruct) (*MemDatabase, *state.StateDB, error) {
 	memDB, err := NewMemDatabase(es.DbBuf)
 	if err != nil {
 		log.LLvl1("Error creating memDB", err)
-		return nil, err
+		return nil, nil, err
 	}
 	db := state.NewDatabase(memDB)
 
 	sdb, err := state.New(es.RootHash, db)
 	if err != nil {
 		log.LLvl1("Error creating state db")
-		return nil, err
+		return nil, nil, err
 	}
-	return sdb, nil
+	return memDB, sdb, nil
 }
 
 //Tries to decode the state change buffer into an ethdb.Database structure
@@ -183,7 +183,7 @@ func getDB2(es EVMStruct) (*state.StateDB, error) {
 
 
 
-func spawnEvm() (*state.StateDB, *vm.EVM, error) {
+func spawnEvm() (*MemDatabase*state.StateDB, *vm.EVM, error) {
 	sdb, err := getDB(EVMStruct{DbBuf:[]byte{}})
 	if err != nil {
 		return nil, nil, err
