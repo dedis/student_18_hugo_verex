@@ -39,14 +39,10 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 		return
 	}
 
-
-
-
 	switch inst.GetType() {
 
 	case byzcoin.SpawnType:
-		log.LLvl1("evm was spawned correctly")
-		db, _, err := spawnEvm()
+		memdb, db, _, err := spawnEvm()
 		if err != nil{
 			return nil, nil, err
 		}
@@ -54,31 +50,31 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 		if err != nil {
 			return nil, nil, err
 		}
-		es.DbBuf = db.Dump()
+		log.LLvl1("spawn root hash", es.RootHash.Hex())
+		//db.Dump()
+		es.DbBuf, err = memdb.Dump()
+		log.LLvl1("memdb dump", es.DbBuf)
 		esBuf, err := protobuf.Encode(&es)
 		instID := inst.DeriveID("")
-
 		scs = []byzcoin.StateChange{
 			byzcoin.NewStateChange(byzcoin.Create, instID, ContractBvmID, esBuf, darcID),
 		}
 		return  scs, cOut, nil
 
 	case byzcoin.InvokeType:
-
 		err = protobuf.Decode(EVMStructBuf, &es)
 		if err != nil {
 			log.LLvl1(err, EVMStructBuf)
 			return
 		}
 		switch inst.Invoke.Command {
-
 		case "display":
 			addressBuf := inst.Invoke.Args.Search("address")
 			if addressBuf == nil {
 				return nil, nil, errors.New("no address provided")
 			}
 			address := common.HexToAddress(string(addressBuf))
-			db, err := getDB(es)
+			_, db, err := getDB(es)
 			if err !=nil {
 				return nil, nil, err
 			}
@@ -103,11 +99,13 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if err !=nil {
 				return nil, nil, err
 			}
-			db, err := getDB(es)
+			memdb, db, err := getDB(es)
 			if err !=nil {
 				log.Error()
 				return nil, nil, err
 			}
+			log.LLvl1("here is the memdb", memdb)
+			log.LLvl1("here is the state db", db)
 			db.SetBalance(address, big.NewInt(1*eth))
 			log.LLvl1(address.Hex(), "balance set", db.GetBalance(address))
 			es.RootHash, err = db.Commit(true)
@@ -115,7 +113,14 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 				log.Error()
 				return nil, nil ,err
 			}
-			es.DbBuf = db.Dump()
+			log.LLvl1("second state.stateDB", db)
+			log.LLvl1("root hash", es.RootHash.Hex())
+			es.DbBuf, err = memdb.Dump()
+			if err != nil {
+				log.Error()
+				return nil, nil, err
+			}
+			log.LLvl1("memdb dump:", es.DbBuf)
 			esBuf, err := protobuf.Encode(&es)
 			if err != nil {
 				log.Error()
@@ -126,7 +131,7 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			}
 
 		case "transaction":
-			db, err := getDB(es)
+			memdb, db, err := getDB(es)
 			if err != nil{
 				return nil, nil, err
 			}
@@ -150,8 +155,14 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if transactionReceipt.ContractAddress.Hex() != nilAddress.Hex() {
 				log.LLvl1("contract deployed at:", transactionReceipt.ContractAddress.Hex())
 			}
-			es.RootHash, _ = db.Commit(true)
-			es.DbBuf = db.Dump()
+			es.RootHash, err = db.Commit(true)
+			if err != nil {
+				return nil, nil, err
+			}
+			es.DbBuf, err = memdb.Dump()
+			if err != nil {
+				return nil, nil, err
+			}
 			esBuf, err := protobuf.Encode(&es)
 			if err != nil {
 				return nil, nil , err

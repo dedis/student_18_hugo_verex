@@ -59,7 +59,7 @@ func TestTokenContract(t *testing.T) {
 
 	//Various setups
 	log.Lvl3("DB setup")
-	sdb, err := getDB(EVMStruct{DbBuf:[]byte{}})
+	_, sdb, err := getDB(EVMStruct{DbBuf:[]byte{}})
 	require.Nil(t, err)
 	//sdb.SetBalance(aPublicKey, big.NewInt(1000000000000))
 	log.Lvl2("Setting up context")
