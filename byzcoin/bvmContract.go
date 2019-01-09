@@ -113,6 +113,10 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 				log.Error()
 				return nil, nil ,err
 			}
+			err = db.Database().TrieDB().Commit(es.RootHash, true)
+			if err != nil{
+				return nil, nil, err
+			}
 			log.LLvl1("second state.stateDB", db)
 			log.LLvl1("root hash", es.RootHash.Hex())
 			es.DbBuf, err = memdb.Dump()
@@ -159,10 +163,15 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			if err != nil {
 				return nil, nil, err
 			}
+			err = db.Database().TrieDB().Commit(es.RootHash, true)
+			if err != nil{
+				return nil, nil, err
+			}
 			es.DbBuf, err = memdb.Dump()
 			if err != nil {
 				return nil, nil, err
 			}
+			log.Print("memdbbuf:", es.DbBuf)
 			esBuf, err := protobuf.Encode(&es)
 			if err != nil {
 				return nil, nil , err

@@ -35,7 +35,9 @@ type MemDatabase struct {
 
 //NewMemDatabase creates a new memory database
 func NewMemDatabase(data []byte) (*MemDatabase, error) {
-	DB := &MemDatabase{}
+	DB := &MemDatabase{
+		DB: map[string][]byte{},
+	}
 	log.LLvl1("data from new mem db", data)
 	err := protobuf.Decode(data, DB)
 	if err != nil {
@@ -151,6 +153,7 @@ func (b *memBatch) Write() error {
 			delete(b.db.DB, string(kv.k))
 			continue
 		}
+		log.Printf("%x - %x", kv.k, kv.v)
 		b.db.DB[string(kv.k)] = kv.v
 	}
 	return nil
