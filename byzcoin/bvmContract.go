@@ -50,10 +50,11 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 		if err != nil {
 			return nil, nil, err
 		}
-		log.LLvl1("spawn root hash", es.RootHash.Hex())
-		//db.Dump()
+		err = db.Database().TrieDB().Commit(es.RootHash, true)
+		if err != nil {
+			return nil, nil, err
+		}
 		es.DbBuf, err = memdb.Dump()
-		log.LLvl1("memdb dump", es.DbBuf)
 		esBuf, err := protobuf.Encode(&es)
 		instID := inst.DeriveID("")
 		scs = []byzcoin.StateChange{
@@ -101,29 +102,24 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 			}
 			memdb, db, err := getDB(es)
 			if err !=nil {
-				log.Error()
 				return nil, nil, err
 			}
-			log.LLvl1("here is the memdb", memdb)
-			log.LLvl1("here is the state db", db)
 			db.SetBalance(address, big.NewInt(1*eth))
 			log.LLvl1(address.Hex(), "balance set", db.GetBalance(address))
 			es.RootHash, err = db.Commit(true)
 			if err != nil {
-				log.Error()
 				return nil, nil ,err
 			}
-			log.LLvl1("second state.stateDB", db)
-			log.LLvl1("root hash", es.RootHash.Hex())
-			es.DbBuf, err = memdb.Dump()
+			err = db.Database().TrieDB().Commit(es.RootHash, true)
 			if err != nil {
-				log.Error()
 				return nil, nil, err
 			}
-			log.LLvl1("memdb dump:", es.DbBuf)
+			es.DbBuf, err = memdb.Dump()
+			if err != nil {
+				return nil, nil, err
+			}
 			esBuf, err := protobuf.Encode(&es)
 			if err != nil {
-				log.Error()
 				return nil, nil , err
 			}
 			scs = []byzcoin.StateChange{
@@ -150,12 +146,15 @@ func contractBvm(cdb byzcoin.CollectionView, inst byzcoin.Instruction, cIn []byz
 				log.LLvl1("error issuing transaction:", err)
 				return nil, nil, err
 			}
-			log.LLvl1("successful new transaction:", transactionReceipt.TxHash.Hex())
-			log.LLvl1("gas used:", transactionReceipt.CumulativeGasUsed)
+			log.LLvl1("tx receipt:", transactionReceipt.TxHash.Hex())
 			if transactionReceipt.ContractAddress.Hex() != nilAddress.Hex() {
 				log.LLvl1("contract deployed at:", transactionReceipt.ContractAddress.Hex())
 			}
 			es.RootHash, err = db.Commit(true)
+			if err != nil {
+				return nil, nil, err
+			}
+			err = db.Database().TrieDB().Commit(es.RootHash, true)
 			if err != nil {
 				return nil, nil, err
 			}

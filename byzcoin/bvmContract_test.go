@@ -21,10 +21,6 @@ import (
 	"github.com/dedis/onet"
 )
 
-var (
-
-
-)
 
 func TestEVMContract_Spawn(t *testing.T) {
 	log.LLvl1("test: instance creation")

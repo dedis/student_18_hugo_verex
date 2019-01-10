@@ -35,8 +35,9 @@ type MemDatabase struct {
 
 //NewMemDatabase creates a new memory database
 func NewMemDatabase(data []byte) (*MemDatabase, error) {
-	DB := &MemDatabase{}
-	log.LLvl1("data from new mem db", data)
+	DB := &MemDatabase{
+		DB: map[string][]byte{},
+	}
 	err := protobuf.Decode(data, DB)
 	if err != nil {
 		log.Lvl1("Error with memory database", err)
@@ -61,7 +62,6 @@ func (db *MemDatabase) Dump() ([]byte, error) {
 func (db *MemDatabase) Put(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
-
 	log.Print(key, value)
 	db.DB[string(key)] = common.CopyBytes(value)
 	return nil

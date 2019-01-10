@@ -1,11 +1,10 @@
 package byzcoin
 
 import (
+	"github.com/dedis/onet/log"
 	"io/ioutil"
 	"math/big"
 	"os"
-
-	"github.com/dedis/onet/log"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
