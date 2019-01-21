@@ -1,5 +1,7 @@
 package byzcoin
 
+import "github.com/dedis/cothority/byzcoin"
+
 // PROTOSTART
 // package keyvalue;
 //
@@ -14,12 +16,20 @@ type KeyValue struct {
 	Value []byte
 }
 
+
 // KeyValueData is the structure that will hold all key/value pairs.
 type KeyValueData struct {
 	Storage []KeyValue
+}
+
+
+type Bvm struct{
+	Name byzcoin.InstanceID
 }
 
 //ContractDeploymentData :
 type ContractDeploymentData struct {
 	gas uint64
 }
+
+
