@@ -5,8 +5,7 @@
 - `Spawn` Instantiate a new ledger for testing the BVM
 - `Invoke:display` display the balance of a given account
 - `Invoke:credit` credits an address with a given amount
-- `Invoke:deploy` deploys a contract using as argument the compiled bytecode
-- `Invoke:call` calls a contract using the contract address and the method call data
+- `Invoke:transaction` sends a transaction to the ledger containing either a new contract code or a transaction to an existing contract
 
 
 

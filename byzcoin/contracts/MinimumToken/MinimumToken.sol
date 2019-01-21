@@ -18,7 +18,6 @@ contract MinimumToken {
         require(!(to == address(0)), "error");
         require(!(from == to), "error");
         require(amount <= balanceOf[from], "error");
-        require(balanceOf[to] <= amount + balanceOf[to], "error");
 
         balanceOf[from] = balanceOf[from] - amount;
         balanceOf[to] = balanceOf[to] + amount;

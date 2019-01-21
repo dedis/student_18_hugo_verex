@@ -18,14 +18,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestKeyValue_Spawn(t *testing.T) {
+func TestEVMContract_Spawn(t *testing.T) {
 	log.LLvl1("test: instance creation")
 	// Create a new ledger and prepare for proper closing
 	bct := newBCTest(t)
 	bct.local.Check = onet.CheckNone
 	defer bct.Close()
-
-
 
 	// Create an empty argument
 	args := byzcoin.Arguments{}
@@ -213,6 +211,9 @@ func newBCTest(t *testing.T) (out *bcTest) {
 func (bct *bcTest) Close() {
 	bct.local.CloseAll()
 }
+
+//The following functions are Byzcoin transactions (instances) that will cary either the Ethereum transactions or
+// a credit or display command
 
 func (bct *bcTest) createInstance(t *testing.T, args byzcoin.Arguments) byzcoin.InstanceID {
 	ctx := byzcoin.ClientTransaction{

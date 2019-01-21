@@ -26,8 +26,6 @@ case class MinimumToken (
     dynRequire(to != Address(0))
     dynRequire(from != to)
     dynRequire(amount <= balanceOf(from))
-    dynRequire(balanceOf(to) <= amount+balanceOf(to))
-
 
     // ghost code to update the list of participants
     ghost {
