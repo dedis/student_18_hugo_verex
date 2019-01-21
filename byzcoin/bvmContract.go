@@ -2,19 +2,17 @@ package byzcoin
 
 import (
 	"errors"
+	"github.com/dedis/cothority/byzcoin"
+	"github.com/dedis/cothority/darc"
 	"github.com/dedis/protobuf"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 	"strconv"
 
-	"github.com/ethereum/go-ethereum/common"
-
 	"github.com/dedis/onet/log"
-
-	"github.com/dedis/cothority/byzcoin"
-	"github.com/dedis/cothority/darc"
 )
 
 // The value contract can simply store a value in an instance and serves
@@ -28,30 +26,25 @@ var nilAddress = common.HexToAddress("0x0000000000000000000000000000000000000000
 //var accountRef = vm.AccountRef(nilAddress)
 
 
-var es EVMStruct
-var EVMStructBuf []byte
-var darcID darc.ID
-
-
-
-
 type contractBvm struct {
 	byzcoin.BasicContract
+	EVMStruct
 }
 
-/*
+
 func contractBvmFromBytes(in []byte) (byzcoin.Contract, error) {
 	cv := &contractBvm{}
-	err := protobuf.Decode(in, &cv.Bvm)
+	err := protobuf.Decode(in, &cv.EVMStruct)
 	if err != nil {
 		return nil, err
 	}
 	return cv, nil
-}*/
+}
 
 
 func (c *contractBvm) Spawn(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruction, coins []byzcoin.Coin) (sc []byzcoin.StateChange, cout []byzcoin.Coin, err error) {
 	cout = coins
+	es := c.EVMStruct
 	memdb, db, _, err := spawnEvm()
 	if err != nil{
 		return nil, nil, err
@@ -71,7 +64,7 @@ func (c *contractBvm) Spawn(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruct
 	// to create multiple instanceIDs out of a given instruction in a pseudo-
 	// random way that will be the same for all nodes.
 	sc = []byzcoin.StateChange{
-		byzcoin.NewStateChange(byzcoin.Create, inst.DeriveID(""), ContractBvmID, esBuf, darcID),
+		byzcoin.NewStateChange(byzcoin.Create, inst.DeriveID(""), ContractBvmID, esBuf, darc.ID(inst.InstanceID.Slice())),
 	}
 	return
 }
@@ -79,15 +72,11 @@ func (c *contractBvm) Spawn(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruct
 func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruction, coins []byzcoin.Coin) (sc []byzcoin.StateChange, cout []byzcoin.Coin, err error) {
 	cout = coins
 	var darcID darc.ID
-	EVMStructBuf, _, _, darcID, err = rst.GetValues(inst.InstanceID.Slice())
+	_, _, _, darcID, err = rst.GetValues(inst.InstanceID.Slice())
 	if err != nil {
 		return
 	}
-	err = protobuf.Decode(EVMStructBuf, &es)
-	if err != nil {
-		log.LLvl1(err, EVMStructBuf)
-		return
-	}
+	es := c.EVMStruct
 
 	switch inst.Invoke.Command {
 
