@@ -1,7 +1,7 @@
 pragma solidity ^0.4.24;
 
-import "/Users/hugo/Projects/smart/frontends/benchmarks/smartcontracts/valid/Voting/ERC20.sol";
-import "/Users/hugo/Projects/smart/frontends/benchmarks/smartcontracts/valid/Voting/SafeMath.sol";
+import "/Users/hugo/student_18_hugo_verex/byzcoin/contracts/Voting/ERC20.sol";
+import "/Users/hugo/student_18_hugo_verex/byzcoin/contracts/Voting/SafeMath.sol";
 
 contract VotingToken {
     // Fields

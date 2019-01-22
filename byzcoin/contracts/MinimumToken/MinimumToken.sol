@@ -10,8 +10,9 @@ contract MinimumToken {
     // Enumerations
 
     // Constructor
-    constructor (uint256 _total) public {
+    constructor (address from, uint256 _total) public {
         total = _total;
+        balanceOf[from] = total;
     }
 
     // Public functions
