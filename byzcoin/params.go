@@ -119,7 +119,7 @@ func getContext() vm.Context {
 
 }
 
-func getDB(es EVMStruct) (*MemDatabase, *state.StateDB, error) {
+func getDB(es ES) (*MemDatabase, *state.StateDB, error) {
 	memDB, err := NewMemDatabase(es.DbBuf)
 	if err != nil {
 		return nil, nil, err
@@ -133,7 +133,7 @@ func getDB(es EVMStruct) (*MemDatabase, *state.StateDB, error) {
 }
 
 func spawnEvm() (*MemDatabase, *state.StateDB, *vm.EVM, error) {
-	mdb, sdb, err := getDB(EVMStruct{DbBuf:[]byte{}})
+	mdb, sdb, err := getDB(ES{DbBuf: []byte{}})
 	if err != nil {
 		return nil, nil, nil, err
 	}

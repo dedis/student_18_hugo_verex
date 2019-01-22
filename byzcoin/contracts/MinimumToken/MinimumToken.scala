@@ -19,6 +19,10 @@ case class MinimumToken (
   var participants: List[Address]
 ) extends Contract {
 
+  def constructor(_total: Uint256): Unit = {
+    total = _total;
+  }
+
   def transferFrom(from: Address, to: Address, amount: Uint256): Unit = {
     require(contractInvariant(this))
 
@@ -53,7 +57,7 @@ case class MinimumToken (
   } ensuring { _ =>
     contractInvariant(this)
   }
-  
+
   @ghost
   def addParticipant(p: Address) = {
     if (!participants.contains(p))

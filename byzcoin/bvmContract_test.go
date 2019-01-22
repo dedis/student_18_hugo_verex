@@ -22,12 +22,14 @@ func TestEVMContract_Spawn(t *testing.T) {
 	log.LLvl1("test: instance creation")
 	// Create a new ledger and prepare for proper closing
 	bct := newBCTest(t)
+
 	bct.local.Check = onet.CheckNone
-	defer bct.Close()
+	defer bct.local.CloseAll()
+
+	//defer bct.Close()
 
 	// Create an empty argument
 	args := byzcoin.Arguments{}
-
 
 	// And send it to the ledger.
 	instID := bct.createInstance(t, args)
@@ -305,7 +307,7 @@ func (bct *bcTest) transactionInstance(t *testing.T, instID byzcoin.InstanceID, 
 	// Sending this transaction to ByzCoin does not directly include it in the
 	// global state - first we must wait for the new block to be created.
 	var err error
-	_, err = bct.cl.AddTransactionAndWait(ctx, 5)
+	_, err = bct.cl.AddTransactionAndWait(ctx, 20)
 	require.Nil(t, err)
 }
 

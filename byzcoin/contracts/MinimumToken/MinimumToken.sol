@@ -10,7 +10,8 @@ contract MinimumToken {
     // Enumerations
 
     // Constructor
-    constructor () public {
+    constructor (uint256 _total) public {
+        total = _total;
     }
 
     // Public functions
@@ -27,4 +28,3 @@ contract MinimumToken {
     // Private functions
 
 }
-
