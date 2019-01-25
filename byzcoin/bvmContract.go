@@ -113,7 +113,7 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 			return nil, nil, err
 		}
 		memdb, db, err := getDB(es)
-		if err !=nil {
+		if err != nil {
 			return nil, nil, err
 		}
 		db.SetBalance(address, big.NewInt(1*eth))

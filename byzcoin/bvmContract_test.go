@@ -28,7 +28,6 @@ func TestEVMContract_Spawn(t *testing.T) {
 	// Create an empty argument
 	args := byzcoin.Arguments{}
 
-
 	// And send it to the ledger.
 	instID := bct.createInstance(t, args)
 
@@ -39,6 +38,7 @@ func TestEVMContract_Spawn(t *testing.T) {
 	pr := reply.Proof
 	require.True(t, pr.InclusionProof.Match(instID.Slice()))
 }
+
 
 func TestEVMContract_Invoke_Display(t *testing.T){
 	log.LLvl1("test: displaying account")
@@ -78,12 +78,11 @@ func TestEVMContract_Invoke_Credit(t *testing.T) {
 		},
 	}
 	instID := bct.createInstance(t, args)
-	// Wait for the proof to be available.
 	_, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
 	require.Nil(t, err)
 	bct.creditAccountInstance(t, instID, args)
+	bct.ct = bct.ct + 1
 	bct.displayAccountInstance(t, instID, args)
-
 }
 
 func TestEVMContract_Invoke_Transaction_Deploy(t *testing.T){
@@ -305,7 +304,7 @@ func (bct *bcTest) transactionInstance(t *testing.T, instID byzcoin.InstanceID, 
 	// Sending this transaction to ByzCoin does not directly include it in the
 	// global state - first we must wait for the new block to be created.
 	var err error
-	_, err = bct.cl.AddTransactionAndWait(ctx, 5)
+	_, err = bct.cl.AddTransactionAndWait(ctx, 20)
 	require.Nil(t, err)
 }
 
