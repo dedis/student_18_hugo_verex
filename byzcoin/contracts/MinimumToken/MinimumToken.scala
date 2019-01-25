@@ -21,7 +21,7 @@ case class MinimumToken (
 
   def constructor(from: Address, _total: Uint256): Unit = {
     total = _total;
-balanceOf(from) = total	
+    balanceOf(from) = total
   }
 
   def transferFrom(from: Address, to: Address, amount: Uint256): Unit = {

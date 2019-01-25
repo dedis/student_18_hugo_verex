@@ -145,22 +145,27 @@ func TestEVMContract_Invoke_Transaction_Mint(t *testing.T){
 
 func TestContractBvm_Invoke_DeployToken(t *testing.T) {
 	log.LLvl1("Deploying Token Contract")
+
+	//Preparing ledger
 	bct := newBCTest(t)
+	bct.local.Check = onet.CheckNone
 	defer bct.Close()
-	privateA := "a33fca62081a2665454fe844a8afbe8e2e02fb66af558e695a79d058f9042f0d"
-	transfer := big.NewInt(0)
-	_, bytecode := getSmartContract("MinimumToken")
-	gasLimit, gasPrice := transactionGasParameters()
-	deployTx := types.NewContractCreation(0, transfer, gasLimit, gasPrice, []byte(bytecode))
-	signedTxBuffer, err := signAndMarshalTx(privateA, deployTx)
-	require.Nil(t, err)
+
+	//Instantiating evm
 	args := byzcoin.Arguments{}
 	instID := bct.createInstance(t, args)
+	// Get the proof from byzcoin
+	reply, err := bct.cl.GetProof(instID.Slice())
 	require.Nil(t, err)
+	// Make sure the proof is a matching proof and not a proof of absence.
+	pr := reply.Proof
+	require.True(t, pr.InclusionProof.Match(instID.Slice()))
 	_, err = bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
 	require.Nil(t, err)
+
+	//Crediting account to have enough ether
 	addressA :=[]byte("0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61")
-	value := []byte("10000")
+	value := []byte("1000000000000000000")
 	args = byzcoin.Arguments{
 		{
 			Name: "address",
@@ -173,13 +178,37 @@ func TestContractBvm_Invoke_DeployToken(t *testing.T) {
 		},
 
 	}
+
+	//Sending crediting instruction and incrementing counter
 	bct.creditAccountInstance(t, instID, args)
+	bct.ct = bct.ct +1
+
+	//Verifying account credit
+	bct.displayAccountInstance(t, instID, args)
+	//bct.ct = bct.ct +1
+
+	//Getting smartcontract
+	_, bytecode := getSmartContract("MinimumToken")
+
+	//Getting transaction parameters
+	transfer := big.NewInt(0)
+	gasLimit, gasPrice := transactionGasParameters()
+	log.LLvl1(gasLimit, gasPrice)
+
+	//Creating deploying transaction
+	deployTx := types.NewContractCreation(0, transfer, gasLimit, gasPrice, []byte(bytecode))
+
+	//Signing transaction with private key corresponding to addressA
+	privateA := "a33fca62081a2665454fe844a8afbe8e2e02fb66af558e695a79d058f9042f0d"
+	signedTxBuffer, err := signAndMarshalTx(privateA, deployTx)
+	require.Nil(t, err)
 	args = byzcoin.Arguments{
 		{
 			Name:  "tx",
 			Value: signedTxBuffer,
 		},
 	}
+	bct.ct = bct.ct +1
 	bct.transactionInstance(t, instID, args)
 }
 
@@ -225,6 +254,7 @@ func TestContractBvm_Invoke_SendTokenAB(t *testing.T) {
 	bct := newBCTest(t)
 	defer bct.Close()
 	args := byzcoin.Arguments{}
+
 	instID := bct.createInstance(t, args)
 
 	//get abi to select sc function
@@ -232,6 +262,7 @@ func TestContractBvm_Invoke_SendTokenAB(t *testing.T) {
 
 	//select the function and give parameters
 	privateA := "a33fca62081a2665454fe844a8afbe8e2e02fb66af558e695a79d058f9042f0d"
+	privateB := "a3e6a98125c8f88fdcb45f13ad65e762b8662865c214ff85e1b1f3efcdffbcc1"
 	fromAddress :=common.HexToAddress("0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61")
 	toAddress := common.HexToAddress("0x2887A24130cACFD8f71C479d9f9Da5b9C6425CE8")
 	methodBuf, err := abiMethodPack(RawAbi, "transferFrom",fromAddress, toAddress, big.NewInt(100))
@@ -244,60 +275,36 @@ func TestContractBvm_Invoke_SendTokenAB(t *testing.T) {
 	gasLimit, gasPrice := transactionGasParameters()
 
 	//create transaction
-	sendTx := types.NewTransaction(0, contractAddress, amount, gasLimit, gasPrice, methodBuf)
-	txBuffer, err := signAndMarshalTx(privateA, sendTx)
+	sendTxAB := types.NewTransaction(0, contractAddress, amount, gasLimit, gasPrice, methodBuf)
+	txBufferAB, err := signAndMarshalTx(privateA, sendTxAB)
 	require.Nil(t, err)
 	args = byzcoin.Arguments{
 		{
-			Name: "tx",
-			Value: txBuffer,
+			Name:  "tx",
+			Value: txBufferAB,
 
 		},
 	}
 	bct.transactionInstance(t,instID, args)
-
-}
-
-
-func TestContractBvm_Invoke_SendTokenBA(t *testing.T) {
-	log.LLvl1("Sending token from A to B")
-	//prepare the ledger
-	bct := newBCTest(t)
-	defer bct.Close()
-	args := byzcoin.Arguments{}
-	instID := bct.createInstance(t, args)
-
-	//get abi to select sc function
-	RawAbi, _ := getSmartContract("MinimumToken")
-
-	//select the function and give parameters
-	//privateA := "a33fca62081a2665454fe844a8afbe8e2e02fb66af558e695a79d058f9042f0d"
-	privateB := "a3e6a98125c8f88fdcb45f13ad65e762b8662865c214ff85e1b1f3efcdffbcc1"
-	fromAddress :=common.HexToAddress("0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61")
-	toAddress := common.HexToAddress("0x2887A24130cACFD8f71C479d9f9Da5b9C6425CE8")
-	methodBuf, err := abiMethodPack(RawAbi, "transferFrom",toAddress, fromAddress, big.NewInt(100))
+	bct.ct = bct.ct +1
+	methodBuf, err = abiMethodPack(RawAbi, "transferFrom", toAddress, fromAddress, big.NewInt(100))
 	require.Nil(t, err)
-
-	//transaction parameters
-	//placeholder waiting for deploying transaction to work
-	contractAddress := common.HexToAddress("0x0000000000000000000000000000000000000000")
-	amount := big.NewInt(0)
-	gasLimit, gasPrice := transactionGasParameters()
-
-	//create transaction
-	sendTx := types.NewTransaction(0, contractAddress, amount, gasLimit, gasPrice, methodBuf)
-	txBuffer, err := signAndMarshalTx(privateB, sendTx)
+	sendTxBA := types.NewTransaction(0, contractAddress, amount, gasLimit, gasPrice, methodBuf)
+	txBufferBA, err := signAndMarshalTx(privateB, sendTxBA)
 	require.Nil(t, err)
 	args = byzcoin.Arguments{
 		{
-			Name: "tx",
-			Value: txBuffer,
+			Name:  "tx",
+			Value: txBufferBA,
 
 		},
 	}
-	bct.transactionInstance(t,instID, args)
+	bct.transactionInstance(t, instID, args)
+
+
 
 }
+
 
 func signAndMarshalTx(privateKey string, tx *types.Transaction) ([]byte, error ){
 	private, err := crypto.HexToECDSA(privateKey)
@@ -327,7 +334,7 @@ func abiMethodPack(contractABI string, methodCall string,  args ...interface{}) 
 }
 
 func transactionGasParameters()(gasLimit uint64, gasPrice *big.Int){
-	gasLimit = uint64(1e17)
+	gasLimit = uint64(1e18)
 	gasPrice = big.NewInt(1)
 	return
 }
