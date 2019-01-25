@@ -119,7 +119,6 @@ func TestContractBvm_Invoke_DeployToken(t *testing.T) {
 
 	//Instantiating evm
 	args := byzcoin.Arguments{}
-
 	instID := bct.createInstance(t, args)
 	// Get the proof from byzcoin
 	reply, err := bct.cl.GetProof(instID.Slice())
@@ -147,7 +146,7 @@ func TestContractBvm_Invoke_DeployToken(t *testing.T) {
 
 	}
 
-	//Sending crediting instruction and incrementing counter
+	//Send credit instructions and incrementing counter
 	bct.creditAccountInstance(t, instID, args)
 	bct.ct = bct.ct +1
 
@@ -176,11 +175,11 @@ func TestContractBvm_Invoke_DeployToken(t *testing.T) {
 			Value: signedTxBuffer,
 		},
 	}
-	log.LLvl1("here")
+
 
 	bct.transactionInstance(t, instID, args)
 	bct.ct = bct.ct +1
-	log.LLvl1("here 1")
+
 
 
 	//Calling constructor method to mint 100 coins
@@ -237,9 +236,7 @@ func TestContractBvm_Invoke_MintToken(t *testing.T) {
 		},
 
 	}
-	//Sending crediting instruction and incrementing counter
-	bct.creditAccountInstance(t, instID, args)
-	bct.ct = bct.ct + 1
+
 
 
 	//CONSTRUCTOR
@@ -260,7 +257,8 @@ func TestContractBvm_Invoke_MintToken(t *testing.T) {
 	constructorTx := types.NewTransaction(0, contractAddress, amount, gasLimit, gasPrice, methodBuf)
 
 	privateA := "a33fca62081a2665454fe844a8afbe8e2e02fb66af558e695a79d058f9042f0d"
-	//sign with private key containing ether
+
+	//sign with private key corresponding to address credited
 	txBuffer, err := signAndMarshalTx(privateA, constructorTx)
 	require.Nil(t, err)
 	args = byzcoin.Arguments{
@@ -270,9 +268,6 @@ func TestContractBvm_Invoke_MintToken(t *testing.T) {
 
 		},
 	}
-	log.LLvl1("about to sleep")
-	time.Sleep(10)
-
 	bct.transactionInstance(t,instID, args)
 	//bct.ct = bct.ct + 1
 
@@ -392,7 +387,7 @@ func abiMethodPack(contractABI string, methodCall string,  args ...interface{}) 
 }
 
 func transactionGasParameters()(gasLimit uint64, gasPrice *big.Int){
-	gasLimit = uint64(1e18)
+	gasLimit = uint64(1e17)
 	gasPrice = big.NewInt(1)
 	return
 }
