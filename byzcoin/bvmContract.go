@@ -15,36 +15,27 @@ import (
 	"github.com/dedis/onet/log"
 )
 
-// The value contract can simply store a value in an instance and serves
-// mainly as a template for other contracts. It helps show the possibilities
-// of the contracts and how to use them at a very simple example.
 
-// ContractKeyValueID denotes a contract that can store and update
-// key/value pairs.
 var ContractBvmID = "bvm"
 var nilAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
-//var accountRef = vm.AccountRef(nilAddress)
-
 
 type contractBvm struct {
 	byzcoin.BasicContract
-	EVMStruct
+	ES
 }
-
 
 func contractBvmFromBytes(in []byte) (byzcoin.Contract, error) {
 	cv := &contractBvm{}
-	err := protobuf.Decode(in, &cv.EVMStruct)
+	err := protobuf.Decode(in, &cv.ES)
 	if err != nil {
 		return nil, err
 	}
 	return cv, nil
 }
 
-
 func (c *contractBvm) Spawn(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruction, coins []byzcoin.Coin) (sc []byzcoin.StateChange, cout []byzcoin.Coin, err error) {
 	cout = coins
-	es := c.EVMStruct
+	es := c.ES
 	memdb, db, _, err := spawnEvm()
 	if err != nil{
 		return nil, nil, err
@@ -76,10 +67,8 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 	if err != nil {
 		return
 	}
-	es := c.EVMStruct
-
+	es := c.ES
 	switch inst.Invoke.Command {
-
 	case "display":
 		log.Lvl2("displaying account value")
 		addressBuf := inst.Invoke.Args.Search("address")
@@ -237,7 +226,7 @@ func sendTx(tx *types.Transaction, db *state.StateDB) (*types.Receipt, error){
 
 
 
-type EVMStruct struct {
+type ES struct {
 	DbBuf []byte
 	RootHash common.Hash
 }

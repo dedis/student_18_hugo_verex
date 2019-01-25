@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-import "/Users/hugo/Projects/smart/frontends/benchmarks/smartcontracts/valid/LoanContract/ERC20Token.sol";
+import "/Users/hugo/student_18_hugo_verex/byzcoin/contracts/LoanContract/ERC20Token.sol";
 
 contract LoanContract {
     // Fields
