@@ -149,6 +149,10 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 			return nil, nil, err
 		}
 		log.LLvl1("tx receipt:", transactionReceipt.TxHash.Hex())
+		log.LLvl1("cumulative gas used:", transactionReceipt.CumulativeGasUsed)
+		if transactionReceipt.Status != 1 {
+			log.LLvl1("transaction failed")
+		}
 		if transactionReceipt.ContractAddress.Hex() != nilAddress.Hex() {
 			log.LLvl1("contract deployed at:", transactionReceipt.ContractAddress.Hex())
 		}
