@@ -181,24 +181,6 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 	return
 }
 
-
-/*
-func (c *contractBvm) Delete(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruction, coins []byzcoin.Coin) (sc []byzcoin.StateChange, cout []byzcoin.Coin, err error) {
-	cout = coins
-
-	var darcID darc.ID
-	_, _, _, darcID, err = rst.GetValues(inst.InstanceID.Slice())
-	if err != nil {
-		return
-	}
-	sc = byzcoin.StateChanges{
-		byzcoin.NewStateChange(byzcoin.Remove, inst.InstanceID, ContractBvmID, nil, darcID),
-	}
-	return
-}
-
-*/
-
 func sendTx(tx *types.Transaction, db *state.StateDB) (*types.Receipt, error){
 	chainconfig := getChainConfig()
 	config := getVMConfig()

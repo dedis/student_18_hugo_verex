@@ -32,9 +32,9 @@ to a ``stainless`` command-line.
 ```bash
  ln -s frontends/scalac/target/universal/stage/bin/stainless-scalac stainless
 ```
-Once the setup is done, you can now create a new smart-contract using the  [`Candy`](frontends/benchmarks/smartcontracts/valid/Candy.scala) contract as a template in scala. 
+Once the setup is done, you can now create a new smart contract using the  [`Candy`](frontends/benchmarks/smartcontracts/valid/Candy.scala) contract as a template. 
 
-If you wish to use one of the [existing](frontends/benchmarks/smartcontracts/valid)  contracts, you can define a constructor with the desired parameters directly with scala.  
+If you wish to use one of the [existing](frontends/benchmarks/smartcontracts/valid)  contracts, you can define a constructor with the desired parameters directly with Scala.  
  
 Stainless is able to verify that the assertions written in the contract are indeed valid : 
 
@@ -45,7 +45,7 @@ For more details on formal verification refer of course to the [Stainless](https
 
 ## ..to Solidity
 
-Copy your scala code into a new folder with the contract name into the [contracts](byzcoin/contracts) folder.
+Copy your Scala code into a new folder with the contract name into the [contracts](byzcoin/contracts) folder.
 
 Run 
 
@@ -62,7 +62,7 @@ solcjs *.sol --bin
 solcjs *.sol --abi
 ```
 
-Which will generate a `ContractName_sol_ContractName.bin` and `ContractName_sol_ContractName.abi` file containing the bytecode and the [ABI](https://solidity.readthedocs.io/en/develop/abi-spec.html) of the smart-contract.
+Which will generate a `ContractName_sol_ContractName.bin` and `ContractName_sol_ContractName.abi` file containing the bytecode and the [ABI](https://solidity.readthedocs.io/en/develop/abi-spec.html) of the smart contract.
  
 ## .. to Byzcoin
 
