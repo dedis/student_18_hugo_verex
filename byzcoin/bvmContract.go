@@ -86,7 +86,6 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		}
 		log.LLvl1( address.Hex(), "balance", ret)
 		return nil, nil, nil
-
 	case "credit":
 		addressBuf := inst.Invoke.Args.Search("address")
 		if addressBuf == nil {
@@ -105,8 +104,8 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		if err != nil {
 			return nil, nil, err
 		}
-		db.SetBalance(address, big.NewInt(1*eth))
-		log.LLvl1(address.Hex(), "balance credited", db.GetBalance(address))
+		db.SetBalance(address, big.NewInt(1e18*eth))
+		log.LLvl1(address.Hex(), "balance credited", db.GetBalance(address), "wei")
 		es.RootHash, err = db.Commit(true)
 		if err != nil {
 			return nil, nil ,err
@@ -148,11 +147,9 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 			log.LLvl1("error issuing transaction:", err)
 			return nil, nil, err
 		}
+		log.LLvl1("tx status:", transactionReceipt.Status, "- 0 failed, 1 successful.")
 		log.LLvl1("tx receipt:", transactionReceipt.TxHash.Hex())
 		log.LLvl1("cumulative gas used:", transactionReceipt.CumulativeGasUsed, transactionReceipt.GasUsed)
-		if transactionReceipt.Status != 1 {
-			log.LLvl1("transaction failed")
-		}
 		if transactionReceipt.ContractAddress.Hex() != nilAddress.Hex() {
 			log.LLvl1("contract deployed at:", transactionReceipt.ContractAddress.Hex())
 		}

@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestEVMContract_Spawn(t *testing.T) {
+func Test_Spawn(t *testing.T) {
 	log.LLvl1("test: instantiating evm")
 	// Create a new ledger and prepare for proper closing
 	bct := newBCTest(t)
@@ -40,7 +40,7 @@ func TestEVMContract_Spawn(t *testing.T) {
 	require.True(t, pr.InclusionProof.Match(instID.Slice()))
 }
 
-func TestEVMContract_Invoke_Credit(t *testing.T) {
+func TestInvoke_Credit(t *testing.T) {
 	log.LLvl1("test: crediting and displaying an account balance")
 	bct := newBCTest(t)
 	bct.local.Check = onet.CheckNone
@@ -66,7 +66,7 @@ func TestEVMContract_Invoke_Credit(t *testing.T) {
 	bct.displayAccountInstance(t, instID, args)
 }
 
-func TestEVMContract_Invoke_Accounts(t *testing.T){
+func TestInvoke_Credit_Accounts(t *testing.T){
 	log.LLvl1("test: crediting and checking accounts balances")
 	// Create a new ledger and prepare for proper closing
 	bct := newBCTest(t)
@@ -109,9 +109,8 @@ func TestEVMContract_Invoke_Accounts(t *testing.T){
 }
 
 
-func TestContractBvm_Invoke_DeployToken(t *testing.T) {
+func TestInvoke_DeployToken(t *testing.T) {
 	log.LLvl1("Deploying Token Contract")
-
 	//Preparing ledger
 	bct := newBCTest(t)
 	bct.local.Check = onet.CheckNone
@@ -131,8 +130,8 @@ func TestContractBvm_Invoke_DeployToken(t *testing.T) {
 
 	//Preparing parameters to credit account to have enough ether to deploy
 	addressA := "0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61"
-	addressABuffer :=[]byte(addressA)
-	value := []byte("1000000000000000000")
+	addressABuffer := []byte(addressA)
+	value := []byte("1") //10 eth = 10*1e18wei
 	args = byzcoin.Arguments{
 		{
 			Name: "address",
@@ -143,7 +142,6 @@ func TestContractBvm_Invoke_DeployToken(t *testing.T) {
 			Value: value,
 
 		},
-
 	}
 
 	//Send credit instructions and incrementing counter
@@ -164,6 +162,7 @@ func TestContractBvm_Invoke_DeployToken(t *testing.T) {
 
 	//Creating deploying transaction
 	deployTx := types.NewContractCreation(0, transfer, gasLimit, gasPrice, []byte(bytecode))
+
 
 	//Signing transaction with private key corresponding to addressA
 	privateA := "a33fca62081a2665454fe844a8afbe8e2e02fb66af558e695a79d058f9042f0d"
@@ -387,7 +386,7 @@ func abiMethodPack(contractABI string, methodCall string,  args ...interface{}) 
 }
 
 func transactionGasParameters()(gasLimit uint64, gasPrice *big.Int){
-	gasLimit = uint64(1e17)
+	gasLimit = uint64(1e7)
 	gasPrice = big.NewInt(1)
 	return
 }
