@@ -1,6 +1,7 @@
 package byzcoin
 
 import (
+	"errors"
 	"github.com/dedis/onet/log"
 	"io/ioutil"
 	"math/big"
@@ -21,15 +22,13 @@ func getSmartContract(nameOfContract string) (string, string) {
 	contractPath := dir + "/contracts/" + nameOfContract+ "/"+ nameOfContract + "_sol_" + nameOfContract
 	abi, err := ioutil.ReadFile(contractPath+ ".abi")
 	if err != nil {
-		log.LLvl1("Problem generating contract ABI")
-	} else {
-		log.Lvl1("ABI generated")
+		err = errors.New("Problem generating contract ABI")
+		log.ErrFatal(err)
 	}
 	bin, err := ioutil.ReadFile(contractPath + ".bin")
 	if err != nil {
-		log.LLvl1("Problem generating contract BIN")
-	} else {
-		log.Lvl1("BIN generated")
+		err = errors.New("Problem generating contract bytecode")
+		log.ErrFatal(err)
 	}
 	return string(abi), string(bin)
 }
@@ -95,15 +94,14 @@ func returnTransfer() func(vm.StateDB, common.Address, common.Address, *big.Int)
 
 func returnGetHash() func(uint64) common.Hash {
 	gethash := func(uint64) common.Hash {
-		log.LLvl1("tried to get hash")
-		return common.HexToHash("0x0000000000000000000000000000000000000000")
+		return common.HexToHash("0")
 	}
 	return gethash
 
 }
 
 func getContext() vm.Context {
-	placeHolder := common.HexToAddress("0x0000000000000000000000000000000000000000")
+	placeHolder := common.HexToAddress("0")
 	return vm.Context{
 		CanTransfer: returnCanTransfer(),
 		Transfer: returnTransfer(),
@@ -119,6 +117,7 @@ func getContext() vm.Context {
 
 }
 
+//getDB returns the Memory Database and the general State database given the old Ethereum general state, kept into the ES struct
 func getDB(es ES) (*MemDatabase, *state.StateDB, error) {
 	memDB, err := NewMemDatabase(es.DbBuf)
 	if err != nil {
@@ -132,6 +131,7 @@ func getDB(es ES) (*MemDatabase, *state.StateDB, error) {
 	return memDB, sdb, nil
 }
 
+//spawnEvm will return the memory database, the general state database and the EVM on which transactions will be applied
 func spawnEvm() (*MemDatabase, *state.StateDB, *vm.EVM, error) {
 	mdb, sdb, err := getDB(ES{DbBuf: []byte{}})
 	if err != nil {
