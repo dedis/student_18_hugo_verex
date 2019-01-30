@@ -4,15 +4,13 @@ import (
 	"errors"
 	"github.com/dedis/cothority/byzcoin"
 	"github.com/dedis/cothority/darc"
+	"github.com/dedis/onet/log"
 	"github.com/dedis/protobuf"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
-	"strconv"
-
-	"github.com/dedis/onet/log"
 )
 
 
@@ -92,6 +90,7 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 			return nil, nil, errors.New("no address provided")
 		}
 		address := common.HexToAddress(string(addressBuf))
+		/*
 		value := inst.Invoke.Args.Search("value")
 		if value == nil {
 			return nil, nil , errors.New("no value provided")
@@ -99,13 +98,13 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		eth, err := strconv.ParseInt(string(value), 10, 64)
 		if err !=nil {
 			return nil, nil, err
-		}
+		}*/
 		memdb, db, err := getDB(es)
 		if err != nil {
 			return nil, nil, err
 		}
-		db.SetBalance(address, big.NewInt(1e18*eth))
-		log.LLvl1(address.Hex(), "balance credited", db.GetBalance(address), "wei")
+		db.SetBalance(address, big.NewInt(1e18*5))
+		log.LLvl1(address.Hex(), "balance credited", db.GetBalance(address), "wei (5 eth)")
 		es.RootHash, err = db.Commit(true)
 		if err != nil {
 			return nil, nil ,err
