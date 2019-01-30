@@ -110,6 +110,7 @@ func TestInvoke_Credit_Accounts(t *testing.T){
 
 
 func TestInvoke_DeployToken(t *testing.T) {
+
 	log.LLvl1("Deploying Token Contract")
 	//Preparing ledger
 	bct := newBCTest(t)
@@ -174,13 +175,26 @@ func TestInvoke_DeployToken(t *testing.T) {
 	bct.ct = bct.ct +1
 
 
+	args = byzcoin.Arguments{
+		{
+			Name: "address",
+			Value: addressABuffer,
+		},
+	}
+
+	//Verifying account credit
+	bct.displayAccountInstance(t, instID, args)
+	bct.ct = bct.ct +1
+
+	time.Sleep(1000)
+
+
 	//Calling constructor method to mint 100 coins
 	methodBuf, err := abiMethodPack(RawAbi, "constructor", addressA, big.NewInt(100))
 	require.Nil(t, err)
 
 
-	// Old hardcoded contract address : contractAddress := common.HexToAddress("0x45663483f58d687c8aF17B85cCCDD9391b567498")
-
+	//Old hardcoded contract address : contractAddress := common.HexToAddress("0x45663483f58d687c8aF17B85cCCDD9391b567498")
 	//The contract address is derived from the sending address and its nonce
 	contractAddress := crypto.CreateAddress(common.HexToAddress(addressA), deployTx.Nonce())
 
@@ -268,14 +282,10 @@ func TestContractBvm_Invoke_MintToken(t *testing.T) {
 	bct.transactionInstance(t,instID, args)
 	bct.ct = bct.ct + 1
 
-
-
 	//TRANSACT
 	//Now send a token transaction from A to B
 	addressB := "0x2887A24130cACFD8f71C479d9f9Da5b9C6425CE8"
 	toAddress := common.HexToAddress(addressB)
-
-
 	methodBuf, err = abiMethodPack(RawAbi, "transferFrom",fromAddress, toAddress, big.NewInt(100))
 	require.Nil(t, err)
 

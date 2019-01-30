@@ -31,6 +31,7 @@ func contractBvmFromBytes(in []byte) (byzcoin.Contract, error) {
 	return cv, nil
 }
 
+//Spawn deploys an EVM
 func (c *contractBvm) Spawn(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruction, coins []byzcoin.Coin) (sc []byzcoin.StateChange, cout []byzcoin.Coin, err error) {
 	cout = coins
 	es := c.ES
@@ -58,6 +59,7 @@ func (c *contractBvm) Spawn(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruct
 	return
 }
 
+//Invoke provides three instructions : display, credit and transaction
 func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruction, coins []byzcoin.Coin) (sc []byzcoin.StateChange, cout []byzcoin.Coin, err error) {
 	cout = coins
 	var darcID darc.ID
@@ -67,8 +69,8 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 	}
 	es := c.ES
 	switch inst.Invoke.Command {
+
 	case "display":
-		log.Lvl2("displaying account value")
 		addressBuf := inst.Invoke.Args.Search("address")
 		if addressBuf == nil {
 			return nil, nil, errors.New("no address provided")
@@ -84,39 +86,40 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		}
 		log.LLvl1( address.Hex(), "balance", ret)
 		return nil, nil, nil
+
 	case "credit":
 		addressBuf := inst.Invoke.Args.Search("address")
 		if addressBuf == nil {
 			return nil, nil, errors.New("no address provided")
 		}
 		address := common.HexToAddress(string(addressBuf))
-		/*
-		value := inst.Invoke.Args.Search("value")
-		if value == nil {
-			return nil, nil , errors.New("no value provided")
-		}
-		eth, err := strconv.ParseInt(string(value), 10, 64)
-		if err !=nil {
-			return nil, nil, err
-		}*/
 		memdb, db, err := getDB(es)
 		if err != nil {
 			return nil, nil, err
 		}
+		//By default credit, credits 5*1e18 wei. To change this, add a new parameter to the byzcoin transaction with the desired value
 		db.SetBalance(address, big.NewInt(1e18*5))
 		log.LLvl1(address.Hex(), "balance credited", db.GetBalance(address), "wei (5 eth)")
+
+		//Commits the general stateDb
 		es.RootHash, err = db.Commit(true)
 		if err != nil {
 			return nil, nil ,err
 		}
+
+		//Commits the low level trieDB
 		err = db.Database().TrieDB().Commit(es.RootHash, true)
 		if err != nil {
 			return nil, nil, err
 		}
+
+		//Saves the general Ethereum State
 		es.DbBuf, err = memdb.Dump()
 		if err != nil {
 			return nil, nil, err
 		}
+
+		//Save the Ethereum structure
 		esBuf, err := protobuf.Encode(&es)
 		if err != nil {
 			return nil, nil , err
@@ -143,27 +146,36 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		}
 		transactionReceipt, err := sendTx(&ethTx, db)
 		if err != nil {
-			log.LLvl1("error issuing transaction:", err)
+			log.ErrFatal(err)
 			return nil, nil, err
 		}
 		log.LLvl1("tx status:", transactionReceipt.Status, "- 0 failed, 1 successful.")
 		log.LLvl1("tx receipt:", transactionReceipt.TxHash.Hex())
-		log.LLvl1("cumulative gas used:", transactionReceipt.CumulativeGasUsed, transactionReceipt.GasUsed)
+		log.LLvl1("cumulative gas used:", transactionReceipt.CumulativeGasUsed)
+
 		if transactionReceipt.ContractAddress.Hex() != nilAddress.Hex() {
 			log.LLvl1("contract deployed at:", transactionReceipt.ContractAddress.Hex())
 		}
+
+		//Commits the general stateDb
 		es.RootHash, err = db.Commit(true)
 		if err != nil {
 			return nil, nil, err
 		}
+
+		//Commits the low level trieDB
 		err = db.Database().TrieDB().Commit(es.RootHash, true)
 		if err != nil {
 			return nil, nil, err
 		}
+
+		//Saves the general Ethereum State
 		es.DbBuf, err = memdb.Dump()
 		if err != nil {
 			return nil, nil, err
 		}
+
+		//Save the Ethereum structure
 		esBuf, err := protobuf.Encode(&es)
 		if err != nil {
 			return nil, nil , err
@@ -180,13 +192,18 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 	return
 }
 
+//sendTx is a helper function that applies the signed transaction to the EVM
 func sendTx(tx *types.Transaction, db *state.StateDB) (*types.Receipt, error){
+
+	//get parameters defined in params
 	chainconfig := getChainConfig()
 	config := getVMConfig()
-	//// GasPool tracks the amount of gas available during execution of the transactions in a block.
+
+	// GasPool tracks the amount of gas available during execution of the transactions in a block.
 	gp := new(core.GasPool).AddGas(uint64(1e18))
 	usedGas := uint64(0)
 	ug := &usedGas
+
 	// ChainContext supports retrieving headers and consensus parameters from the
 	// current blockchain to be used during transaction processing.
 	var bc core.ChainContext
@@ -198,6 +215,7 @@ func sendTx(tx *types.Transaction, db *state.StateDB) (*types.Receipt, error){
 		ParentHash: common.Hash{0},
 		Time: big.NewInt(0),
 	}
+
 	receipt, usedGas, err := core.ApplyTransaction(chainconfig, bc, &nilAddress, gp, db, header, tx, ug, config)
 	if err !=nil {
 		log.Error()
