@@ -28,8 +28,11 @@ Display and credit instructions will take as only parameter the Ethereum address
 
 To execute a transaction such as deploying a contract or interacting with an existing contract you will need to sign the transaction with a private key containing enough ether to pay for the execution of the transaction. You will have to credit an address before the next steps to avoid an out of gas error.
 
+#### Gas parameters
 
 You can set custom gasLimit and gasPrice in each transaction or use the `transactionGasParameters` function.
+
+#### Abi & bytecode
 
 You will need both the bytecode (to deploy the contract) and the abi (to interact with it) of your smart contract. Use the `getSC` function or hardcode them directly. 
 
@@ -70,7 +73,7 @@ es.RootHash := sdb.Commit
 where sdb is the state.stateDb. To save the database 
 
 ```golang
-es.DbBuf, err = memdb.Dump()
+es.DbBuf, err := memdb.Dump()
 ```
 
 after having commited the memory database

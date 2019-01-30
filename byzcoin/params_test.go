@@ -29,7 +29,7 @@ func TestTokenContract(t *testing.T) {
 	addressB := common.HexToAddress("b")
 
 
-	accountRef := vm.AccountRef(common.HexToAddress("0x0000000000000000000000000000000000000000"))
+	accountRef := vm.AccountRef(common.HexToAddress("0"))
 
 
 	//Cration of the abi object

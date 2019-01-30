@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//Spawn a bvm
 func Test_Spawn(t *testing.T) {
 	log.LLvl1("test: instantiating evm")
 	// Create a new ledger and prepare for proper closing
@@ -40,6 +41,7 @@ func Test_Spawn(t *testing.T) {
 	require.True(t, pr.InclusionProof.Match(instID.Slice()))
 }
 
+//Credits and displays an account balance
 func TestInvoke_Credit(t *testing.T) {
 	log.LLvl1("test: crediting and displaying an account balance")
 	bct := newBCTest(t)
@@ -66,6 +68,7 @@ func TestInvoke_Credit(t *testing.T) {
 	bct.displayAccountInstance(t, instID, args)
 }
 
+//Credits and displays three accounts balances
 func TestInvoke_Credit_Accounts(t *testing.T){
 	log.LLvl1("test: crediting and checking accounts balances")
 	// Create a new ledger and prepare for proper closing
@@ -108,10 +111,10 @@ func TestInvoke_Credit_Accounts(t *testing.T){
 	}
 }
 
-
+//Test the MinimumToken from the contract folders. Deploying, setting the constructor and then transferring between accounts a to b
 func TestInvoke_DeployToken(t *testing.T) {
-
 	log.LLvl1("Deploying Token Contract")
+
 	//Preparing ledger
 	bct := newBCTest(t)
 	bct.local.Check = onet.CheckNone
@@ -124,12 +127,16 @@ func TestInvoke_DeployToken(t *testing.T) {
 	// Get the proof from byzcoin
 	reply, err := bct.cl.GetProof(instID.Slice())
 	require.Nil(t, err)
+
 	// Make sure the proof is a matching proof and not a proof of absence.
 	pr := reply.Proof
 	require.True(t, pr.InclusionProof.Match(instID.Slice()))
+
 	_, err = bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
 	require.Nil(t, err)
 
+
+	//CREDIT
 	//Preparing parameters to credit account to have enough ether to deploy
 	addressA := "0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61"
 	addressABuffer := []byte(addressA)
@@ -140,7 +147,7 @@ func TestInvoke_DeployToken(t *testing.T) {
 		},
 	}
 
-	//Send credit instructions and incrementing counter
+	//Send credit instructions to Byzcoin and incrementing nonce counter
 	bct.creditAccountInstance(t, instID, args)
 	bct.ct = bct.ct +1
 
@@ -148,8 +155,8 @@ func TestInvoke_DeployToken(t *testing.T) {
 	bct.displayAccountInstance(t, instID, args)
 	bct.ct = bct.ct +1
 
-
-	//Getting smartcontract
+	//DEPLOY
+	//Getting smartcontract abi and bytecode
 	RawAbi, bytecode := getSmartContract("MinimumToken")
 
 	//Getting transaction parameters
@@ -157,7 +164,6 @@ func TestInvoke_DeployToken(t *testing.T) {
 
 	//Creating deploying transaction
 	deployTx := types.NewContractCreation(0,  big.NewInt(0), gasLimit, gasPrice, common.Hex2Bytes(bytecode))
-
 
 	//Signing transaction with private key corresponding to addressA
 	privateA := "a33fca62081a2665454fe844a8afbe8e2e02fb66af558e695a79d058f9042f0d"
@@ -170,10 +176,8 @@ func TestInvoke_DeployToken(t *testing.T) {
 		},
 	}
 
-
 	bct.transactionInstance(t, instID, args)
 	bct.ct = bct.ct +1
-
 
 	args = byzcoin.Arguments{
 		{
@@ -186,9 +190,7 @@ func TestInvoke_DeployToken(t *testing.T) {
 	bct.displayAccountInstance(t, instID, args)
 	bct.ct = bct.ct +1
 
-	time.Sleep(1000)
-
-
+	//CONSTRUCTOR
 	//Calling constructor method to mint 100 coins
 	methodBuf, err := abiMethodPack(RawAbi, "constructor", addressA, big.NewInt(100))
 	require.Nil(t, err)
@@ -210,87 +212,19 @@ func TestInvoke_DeployToken(t *testing.T) {
 		},
 	}
 	bct.transactionInstance(t,instID, args)
-	//bct.ct = bct.ct + 1
-
-}
-
-
-func TestContractBvm_Invoke_MintToken(t *testing.T) {
-	log.LLvl1("Minting tokens")
-
-	//PREPARE
-	//Prepare the ledger
-	bct := newBCTest(t)
-	defer bct.Close()
-	args := byzcoin.Arguments{}
-	instID := bct.createInstance(t, args)
-	// Get the proof from byzcoin
-	reply, err := bct.cl.GetProof(instID.Slice())
-	require.Nil(t, err)
-	// Make sure the proof is a matching proof and not a proof of absence.
-	pr := reply.Proof
-	require.True(t, pr.InclusionProof.Match(instID.Slice()))
-
-	//CREDIT
-	//Preparing parameters to credit account to have enough ether to deploy
-	addressA := "0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61"
-	addressABuffer :=[]byte(addressA)
-	args = byzcoin.Arguments{
-		{
-			Name: "address",
-			Value: addressABuffer,
-		},
-	}
-
-	//Send credit instructions and incrementing counter
-	bct.creditAccountInstance(t, instID, args)
-	bct.ct = bct.ct +1
-
-	//Verifying account credit
-	bct.displayAccountInstance(t, instID, args)
-	bct.ct = bct.ct +1
-
-	//CONSTRUCTOR
-	//Preparing the parameters to send the constructor transaction
-	RawAbi, _ := getSmartContract("MinimumToken")
-	fromAddress := common.HexToAddress(addressA)
-
-	//Select the function using abi and give parameters. Will mint 100 coins
-	methodBuf, err := abiMethodPack(RawAbi, "constructor", fromAddress, big.NewInt(100))
-	require.Nil(t, err)
-
-	//Transaction parameters
-	contractAddress := common.HexToAddress("0x45663483f58d687c8aF17B85cCCDD9391b567498")
-	amount := big.NewInt(0)
-	gasLimit, gasPrice := transactionGasParameters()
-
-	//Create transaction
-	constructorTx := types.NewTransaction(0, contractAddress, amount, gasLimit, gasPrice, methodBuf)
-
-	privateA := "a33fca62081a2665454fe844a8afbe8e2e02fb66af558e695a79d058f9042f0d"
-
-	//sign with private key corresponding to address credited
-	txBuffer, err := signAndMarshalTx(privateA, constructorTx)
-	require.Nil(t, err)
-	args = byzcoin.Arguments{
-		{
-			Name: "tx",
-			Value: txBuffer,
-
-		},
-	}
-	bct.transactionInstance(t,instID, args)
 	bct.ct = bct.ct + 1
 
-	//TRANSACT
+
+	//TRANSACT A to B
 	//Now send a token transaction from A to B
 	addressB := "0x2887A24130cACFD8f71C479d9f9Da5b9C6425CE8"
 	toAddress := common.HexToAddress(addressB)
-	methodBuf, err = abiMethodPack(RawAbi, "transferFrom",fromAddress, toAddress, big.NewInt(100))
+	fromAddress := common.HexToAddress(addressA)
+	methodBuf, err = abiMethodPack(RawAbi, "transferFrom",fromAddress, toAddress, big.NewInt(1))
 	require.Nil(t, err)
 
 	//create transaction
-	sendTxAB := types.NewTransaction(0, contractAddress, amount, gasLimit, gasPrice, methodBuf)
+	sendTxAB := types.NewTransaction(0, contractAddress, big.NewInt(0), gasLimit, gasPrice, methodBuf)
 	txBufferAB, err := signAndMarshalTx(privateA, sendTxAB)
 	require.Nil(t, err)
 	args = byzcoin.Arguments{
@@ -306,6 +240,7 @@ func TestContractBvm_Invoke_MintToken(t *testing.T) {
 
 }
 
+//Signs the transaction with a private key and returns the transaction in byte format, ready to be included into the Byzcoin transaction
 func signAndMarshalTx(privateKey string, tx *types.Transaction) ([]byte, error ){
 	private, err := crypto.HexToECDSA(privateKey)
 	if err !=nil {
@@ -323,6 +258,7 @@ func signAndMarshalTx(privateKey string, tx *types.Transaction) ([]byte, error )
 	return signedBuffer, err
 }
 
+//Creates the data to interact with an existing contract, with a variadic number of arguments
 func abiMethodPack(contractABI string, methodCall string,  args ...interface{}) (data []byte, err error){
 	abiBuf := []byte(contractABI)
 	ABI, err := abi.JSON(strings.NewReader(string(abiBuf)))
@@ -333,6 +269,7 @@ func abiMethodPack(contractABI string, methodCall string,  args ...interface{}) 
 	return abiCall, nil
 }
 
+//Return gas parameters for easy modification
 func transactionGasParameters()(gasLimit uint64, gasPrice *big.Int){
 	gasLimit = uint64(1e7)
 	gasPrice = big.NewInt(1)
@@ -385,7 +322,7 @@ func (bct *bcTest) Close() {
 }
 
 //The following functions are Byzcoin transactions (instances) that will cary either the Ethereum transactions or
-// a credit or display command
+// a credit and display command
 
 func (bct *bcTest) createInstance(t *testing.T, args byzcoin.Arguments) byzcoin.InstanceID {
 	ctx := byzcoin.ClientTransaction{
@@ -433,8 +370,6 @@ func (bct *bcTest) displayAccountInstance(t *testing.T, instID byzcoin.InstanceI
 	require.Nil(t,err)
 }
 
-
-
 func (bct *bcTest) creditAccountInstance(t *testing.T, instID byzcoin.InstanceID, args byzcoin.Arguments){
 	ctx := byzcoin.ClientTransaction{
 		Instructions: []byzcoin.Instruction{{
@@ -456,7 +391,6 @@ func (bct *bcTest) creditAccountInstance(t *testing.T, instID byzcoin.InstanceID
 	_, err = bct.cl.AddTransactionAndWait(ctx, 20)
 	require.Nil(t,err)
 }
-
 
 func (bct *bcTest) transactionInstance(t *testing.T, instID byzcoin.InstanceID, args byzcoin.Arguments) {
 	ctx := byzcoin.ClientTransaction{
