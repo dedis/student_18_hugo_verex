@@ -84,7 +84,7 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		if ret == big.NewInt(0) {
 			log.LLvl1(address.Hex(), "balance empty")
 		}
-		log.LLvl1( address.Hex(), "balance", ret)
+		log.LLvl1( address.Hex(), "balance", ret ,"wei")
 		return nil, nil, nil
 
 	case "credit":
@@ -99,7 +99,7 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		}
 		//By default credit, credits 5*1e18 wei. To change this, add a new parameter to the byzcoin transaction with the desired value
 		db.SetBalance(address, big.NewInt(1e18*5))
-		log.LLvl1(address.Hex(), "balance credited", db.GetBalance(address), "wei (5 eth)")
+		log.LLvl1(address.Hex(), "credited 5 eth")
 
 		//Commits the general stateDb
 		es.RootHash, err = db.Commit(true)
@@ -149,13 +149,13 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 			log.ErrFatal(err)
 			return nil, nil, err
 		}
-		log.LLvl1("tx status:", transactionReceipt.Status, "- 0 failed, 1 successful.")
-		log.LLvl1("tx receipt:", transactionReceipt.TxHash.Hex())
-		log.LLvl1("cumulative gas used:", transactionReceipt.CumulativeGasUsed)
 
 		if transactionReceipt.ContractAddress.Hex() != nilAddress.Hex() {
-			log.LLvl1("contract deployed at:", transactionReceipt.ContractAddress.Hex())
+			log.LLvl1("contract deployed at:", transactionReceipt.ContractAddress.Hex(), "tx status:", transactionReceipt.Status, "(0/1 fail/success)", "gas used:", transactionReceipt.GasUsed, "tx receipt:", transactionReceipt.TxHash.Hex())
+		} else {
+			log.LLvl1("tx status:", transactionReceipt.Status, "(0/1 fail/success)", "gas used:", transactionReceipt.GasUsed, "tx receipt:", transactionReceipt.TxHash.Hex())
 		}
+
 
 		//Commits the general stateDb
 		es.RootHash, err = db.Commit(true)
