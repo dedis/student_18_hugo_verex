@@ -310,14 +310,14 @@ func TestInvoke_LoanContract(t *testing.T){
 	bct.ct = bct.ct +1
 
 
-
+	//CONSTRUCTOR
 	//Once deployed we will now send the constructor arguments
 	//constructor (uint256 _wantedAmount, uint256 _interest, uint256 _tokenAmount, string _tokenName, ERC20Token _tokenContractAddress, uint256 _length) public {
 	tokenContractAddress := "0xdac17f958d2ee523a2206206994597c13d831ec7"
-	constructorData, err := abiMethodPack(rawAbi, "constructor", big.NewInt(100), big.NewInt(2), big.NewInt(10000), "USDT", tokenContractAddress, big.NewInt(10))
+	constructorData, err := abiMethodPack(rawAbi, "constructor", big.NewInt(3), big.NewInt(1), big.NewInt(10000), "USDT", tokenContractAddress, big.NewInt(10))
 	require.Nil(t, err)
 	contractAddress := crypto.CreateAddress(common.HexToAddress(addressA), deployTx.Nonce())
-	constructorTx := types.NewTransaction(0, contractAddress, big.NewInt(0), gasLimit, gasPrice, constructorData)
+	constructorTx := types.NewTransaction(1, contractAddress, big.NewInt(0), gasLimit, gasPrice, constructorData)
 	txBuffer, err := signAndMarshalTx(privateA, constructorTx)
 	require.Nil(t, err)
 	args = byzcoin.Arguments{
@@ -330,6 +330,56 @@ func TestInvoke_LoanContract(t *testing.T){
 	bct.transactionInstance(t,instID, args)
 	bct.ct = bct.ct + 1
 
+	//CHECK TOKENS
+
+	checkTokenData, err := abiMethodPack(rawAbi, "checkTokens")
+	require.Nil(t,err)
+	checkTokenTx := types.NewTransaction(2, contractAddress, big.NewInt(0), gasLimit, gasPrice, checkTokenData)
+	txBuffer, err = signAndMarshalTx(privateA, checkTokenTx)
+	require.Nil(t, err)
+	args = byzcoin.Arguments{
+		{
+			Name: "tx",
+			Value: txBuffer,
+
+		},
+	}
+	bct.transactionInstance(t,instID, args)
+	bct.ct = bct.ct + 1
+
+	//LEND
+
+	addressB := "0x2887A24130cACFD8f71C479d9f9Da5b9C6425CE8"
+	privateB := "a3e6a98125c8f88fdcb45f13ad65e762b8662865c214ff85e1b1f3efcdffbcc1"
+
+	//CREDIT account B for lending
+
+	addressBBuffer := []byte(addressB)
+	args = byzcoin.Arguments{
+		{
+			Name: "address",
+			Value: addressBBuffer,
+		},
+	}
+
+	//Send credit instructions to Byzcoin and incrementing nonce counter
+	bct.creditAccountInstance(t, instID, args)
+	bct.ct = bct.ct +1
+
+	lendData, err := abiMethodPack(rawAbi, "lend")
+	require.Nil(t, err)
+	lendTx := types.NewTransaction(0, contractAddress, big.NewInt(3*1e18),gasLimit, gasPrice, lendData)
+	signedTxBuffer, err = signAndMarshalTx(privateB, lendTx)
+	require.Nil(t, err)
+	args = byzcoin.Arguments{
+		{
+			Name: "tx",
+			Value: txBuffer,
+
+		},
+	}
+	bct.transactionInstance(t,instID, args)
+	bct.ct = bct.ct + 1
 }
 
 //Signs the transaction with a private key and returns the transaction in byte format, ready to be included into the Byzcoin transaction
