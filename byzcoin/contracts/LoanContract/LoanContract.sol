@@ -35,7 +35,7 @@ contract LoanContract {
       tokenContractAddress = _tokenContractAddress;
       daysToLend = _length;
       borrower = msg.sender;
-      currentState = state.WaitingForData;
+      currentState = State.WaitingForData;
     }
 
     // Public functions

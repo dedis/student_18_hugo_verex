@@ -240,6 +240,98 @@ func TestInvoke_DeployToken(t *testing.T) {
 
 }
 
+
+
+func TestInvoke_LoanContract(t *testing.T){
+	log.LLvl1("Deploying Token Contract")
+
+	//Preparing ledger
+	bct := newBCTest(t)
+	bct.local.Check = onet.CheckNone
+	defer bct.Close()
+
+	//Instantiating evm
+	args := byzcoin.Arguments{}
+	instID := bct.createInstance(t, args)
+
+	// Get the proof from byzcoin
+	reply, err := bct.cl.GetProof(instID.Slice())
+	require.Nil(t, err)
+
+	// Make sure the proof is a matching proof and not a proof of absence.
+	pr := reply.Proof
+	require.True(t, pr.InclusionProof.Match(instID.Slice()))
+
+	_, err = bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
+	require.Nil(t, err)
+
+
+	//CREDIT
+	//Preparing parameters to credit account to have enough ether to deploy
+	addressA := "0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61"
+	addressABuffer := []byte(addressA)
+	args = byzcoin.Arguments{
+		{
+			Name: "address",
+			Value: addressABuffer,
+		},
+	}
+
+	//Send credit instructions to Byzcoin and incrementing nonce counter
+	bct.creditAccountInstance(t, instID, args)
+	bct.ct = bct.ct +1
+
+	//Verifying account credit
+	bct.displayAccountInstance(t, instID, args)
+	bct.ct = bct.ct +1
+
+	//DEPLOY
+	//Getting smartcontract abi and bytecode
+	rawAbi, bytecode := getSmartContract("LoanContract")
+
+	//Getting transaction parameters
+	gasLimit, gasPrice := transactionGasParameters()
+
+	//Creating deploying transaction
+	deployTx := types.NewContractCreation(0,  big.NewInt(0), gasLimit, gasPrice, common.Hex2Bytes(bytecode))
+
+	//Signing transaction with private key corresponding to addressA
+	privateA := "a33fca62081a2665454fe844a8afbe8e2e02fb66af558e695a79d058f9042f0d"
+	signedTxBuffer, err := signAndMarshalTx(privateA, deployTx)
+	require.Nil(t, err)
+	args = byzcoin.Arguments{
+		{
+			Name:  "tx",
+			Value: signedTxBuffer,
+		},
+	}
+
+	bct.transactionInstance(t, instID, args)
+	bct.ct = bct.ct +1
+
+
+
+	//Once deployed we will now send the constructor arguments
+	//constructor (uint256 _wantedAmount, uint256 _interest, uint256 _tokenAmount, string _tokenName, ERC20Token _tokenContractAddress, uint256 _length) public {
+	tokenContractAddress := "0xdac17f958d2ee523a2206206994597c13d831ec7"
+	constructorData, err := abiMethodPack(rawAbi, "constructor", big.NewInt(100), big.NewInt(2), big.NewInt(10000), "USDT", tokenContractAddress, big.NewInt(10))
+	require.Nil(t, err)
+	contractAddress := crypto.CreateAddress(common.HexToAddress(addressA), deployTx.Nonce())
+	constructorTx := types.NewTransaction(0, contractAddress, big.NewInt(0), gasLimit, gasPrice, constructorData)
+	txBuffer, err := signAndMarshalTx(privateA, constructorTx)
+	require.Nil(t, err)
+	args = byzcoin.Arguments{
+		{
+			Name: "tx",
+			Value: txBuffer,
+
+		},
+	}
+	bct.transactionInstance(t,instID, args)
+	bct.ct = bct.ct + 1
+
+}
+
 //Signs the transaction with a private key and returns the transaction in byte format, ready to be included into the Byzcoin transaction
 func signAndMarshalTx(privateKey string, tx *types.Transaction) ([]byte, error ){
 	private, err := crypto.HexToECDSA(privateKey)
