@@ -51,9 +51,9 @@ Create an Ethereum transaction using the `NewTransaction` function of the types 
 then `signAndMarshalTx` and send to Byzcoin as above.
 
 ## Memory abstraction layers 
-![Memory Model](bvmMemory.svg)
+![Memory Model](./images/bvmMemory.svg)
 
-## Ethereum structure
+## Ethereum State
 
 Defined as 
 ```golang
@@ -63,7 +63,7 @@ type ES struct {
 }
 ```
 
-represents the general state change in the Ethereum model. It is needed to reinstantiate the state database with the differents balances and contracts stored.
+defined by the general state and the last root commit hash.
 To save the root hash : 
 
 ```golang
@@ -91,8 +91,8 @@ To get the different databases, simply use the `getDB` function in `params.go`
 
 The following files are in this directory:
 
-- `bvmContract.go` defines the byzcoin contract that interacts with the Ethereum Virtual Machine
-- `database.go` redefines the ethereum database functions to be compatible with Byzcoin
+- `bvmContract.go` defines the Byzcoin contract that interacts with the Ethereum Virtual Machine
+- `database.go` redefines the Ethereum database functions to be compatible with Byzcoin
 - `params.go` defines the parameter of the BVM
 - `keys.go` helper methods for Ethereum key management 
 - `service.go` only serves to register the contract with ByzCoin. If you

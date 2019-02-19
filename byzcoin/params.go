@@ -79,6 +79,7 @@ func getVMConfig() vm.Config {
 	return *vmconfig
 }
 
+
 func returnCanTransfer() func(vm.StateDB, common.Address, *big.Int) bool {
 	canTransfer := func(vm.StateDB, common.Address, *big.Int) bool {
 		return true
@@ -117,7 +118,7 @@ func getContext() vm.Context {
 
 }
 
-//getDB returns the Memory Database and the general State database given the old Ethereum general state, kept into the ES struct
+//getDB returns the Memory Database and the general State database given the old Ethereum general state
 func getDB(es ES) (*MemDatabase, *state.StateDB, error) {
 	memDB, err := NewMemDatabase(es.DbBuf)
 	if err != nil {

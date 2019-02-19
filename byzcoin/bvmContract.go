@@ -84,7 +84,7 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		if ret == big.NewInt(0) {
 			log.LLvl1(address.Hex(), "balance empty")
 		}
-		log.LLvl1( address.Hex(), "balance", ret ,"wei")
+		log.LLvl1("check:", address.Hex(), "balance", ret.Uint64()/1e18, "ether" )
 		return nil, nil, nil
 
 	case "credit":
@@ -97,6 +97,7 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		if err != nil {
 			return nil, nil, err
 		}
+
 		//By default credit, credits 5*1e18 wei. To change this, add a new parameter to the byzcoin transaction with the desired value
 		db.SetBalance(address, big.NewInt(1e18*5))
 		log.LLvl1(address.Hex(), "credited 5 eth")
@@ -119,7 +120,7 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 			return nil, nil, err
 		}
 
-		//Save the Ethereum structure
+		//Saves the Ethereum structure
 		esBuf, err := protobuf.Encode(&es)
 		if err != nil {
 			return nil, nil , err
@@ -130,10 +131,12 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		}
 
 	case "transaction":
+		//Restores Ethereum state from ES struct
 		memdb, db, err := getDB(es)
 		if err != nil{
 			return nil, nil, err
 		}
+		//Gets Ethereum transaction buffer
 		txBuffer := inst.Invoke.Args.Search("tx")
 		if txBuffer == nil {
 			log.LLvl1("no transaction provided in byzcoin transaction")
@@ -144,6 +147,7 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		if err != nil {
 			return nil, nil, err
 		}
+		//Sends transaction
 		transactionReceipt, err := sendTx(&ethTx, db)
 		if err != nil {
 			log.ErrFatal(err)
@@ -151,11 +155,10 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		}
 
 		if transactionReceipt.ContractAddress.Hex() != nilAddress.Hex() {
-			log.LLvl1("contract deployed at:", transactionReceipt.ContractAddress.Hex(), "tx status:", transactionReceipt.Status, "(0/1 fail/success)", "gas used:", transactionReceipt.GasUsed, "tx receipt:", transactionReceipt.TxHash.Hex())
+			log.LLvl1("contract deployed at:", transactionReceipt.ContractAddress.Hex(), "tx status:", transactionReceipt.Status, "gas used:", transactionReceipt.GasUsed, "tx receipt:", transactionReceipt.TxHash.Hex())
 		} else {
-			log.LLvl1("tx status:", transactionReceipt.Status, "(0/1 fail/success)", "gas used:", transactionReceipt.GasUsed, "tx receipt:", transactionReceipt.TxHash.Hex())
+			log.LLvl1("tx status:", transactionReceipt.Status, "gas used:", transactionReceipt.GasUsed, "tx receipt:", transactionReceipt.TxHash.Hex())
 		}
-
 
 		//Commits the general stateDb
 		es.RootHash, err = db.Commit(true)
@@ -175,15 +178,18 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 			return nil, nil, err
 		}
 
-		//Save the Ethereum structure
+		//Encodes the Ethereum structure
 		esBuf, err := protobuf.Encode(&es)
 		if err != nil {
 			return nil, nil , err
 		}
+
+		//Saves structure in Byzcoin state
 		sc = []byzcoin.StateChange{
 			byzcoin.NewStateChange(byzcoin.Update, inst.InstanceID,
 				ContractBvmID, esBuf, darcID),
 		}
+
 	default :
 		err = errors.New("Contract can only display, credit and receive transactions")
 		return
@@ -192,10 +198,10 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 	return
 }
 
-//sendTx is a helper function that applies the signed transaction to the EVM
+//sendTx is a helper function that applies the signed transaction to a general state
 func sendTx(tx *types.Transaction, db *state.StateDB) (*types.Receipt, error){
 
-	//get parameters defined in params
+	//Gets parameters defined in params
 	chainconfig := getChainConfig()
 	config := getVMConfig()
 
@@ -207,6 +213,7 @@ func sendTx(tx *types.Transaction, db *state.StateDB) (*types.Receipt, error){
 	// ChainContext supports retrieving headers and consensus parameters from the
 	// current blockchain to be used during transaction processing.
 	var bc core.ChainContext
+
 	// Header represents a block header in the Ethereum blockchain.
 	var header  *types.Header
 	header = &types.Header{
@@ -216,6 +223,7 @@ func sendTx(tx *types.Transaction, db *state.StateDB) (*types.Receipt, error){
 		Time: big.NewInt(0),
 	}
 
+	//Applies transaction to the general state
 	receipt, usedGas, err := core.ApplyTransaction(chainconfig, bc, &nilAddress, gp, db, header, tx, ug, config)
 	if err !=nil {
 		log.Error()
@@ -225,7 +233,7 @@ func sendTx(tx *types.Transaction, db *state.StateDB) (*types.Receipt, error){
 }
 
 
-
+//EthereumState structure contains DbBuf the general state and RootHash the hash of the last commit
 type ES struct {
 	DbBuf []byte
 	RootHash common.Hash
