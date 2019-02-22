@@ -1,6 +1,7 @@
 package byzcoin
 
 import (
+
 	"errors"
 	"github.com/dedis/cothority/byzcoin"
 	"github.com/dedis/cothority/darc"
@@ -39,16 +40,21 @@ func (c *contractBvm) Spawn(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruct
 	if err != nil{
 		return nil, nil, err
 	}
+	log.LLvl1("spawn db", db)
 	es.RootHash, err = db.Commit(true)
 	if err != nil {
 		return nil, nil, err
 	}
+	log.LLvl1("spawn commit successful root hash", es.RootHash.Hex())
 	err = db.Database().TrieDB().Commit(es.RootHash, true)
 	if err != nil {
 		return nil, nil, err
 	}
 	es.DbBuf, err = memdb.Dump()
+	log.LLvl1("memdb spawn", memdb.DB)
 	esBuf, err := protobuf.Encode(&es)
+
+	log.LLvl1("DbBuf spawn", es.DbBuf )
 	// Then create a StateChange request with the data of the instance. The
 	// InstanceID is given by the DeriveID method of the instruction that allows
 	// to create multiple instanceIDs out of a given instruction in a pseudo-
@@ -56,6 +62,11 @@ func (c *contractBvm) Spawn(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruct
 	sc = []byzcoin.StateChange{
 		byzcoin.NewStateChange(byzcoin.Create, inst.DeriveID(""), ContractBvmID, esBuf, darc.ID(inst.InstanceID.Slice())),
 	}
+	/*
+	for i, sc := range sc{
+		log.Printf("state-change %d is %x", i, sha256.Sum256(sc.Value))
+	}*/
+	log.LLvl1("spawn okay,root hash", es.RootHash.Hex())
 	return
 }
 
@@ -71,6 +82,7 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 	switch inst.Invoke.Command {
 
 	case "display":
+
 		addressBuf := inst.Invoke.Args.Search("address")
 		if addressBuf == nil {
 			return nil, nil, errors.New("no address provided")
@@ -80,6 +92,7 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		if err !=nil {
 			return nil, nil, err
 		}
+		log.LLvl1("passed db display")
 		ret := db.GetBalance(address)
 		if ret == big.NewInt(0) {
 			log.LLvl1(address.Hex(), "balance empty")
@@ -114,11 +127,15 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 			return nil, nil, err
 		}
 
+		log.LLvl1("dbBuf credit before", es.DbBuf)
+
 		//Saves the general Ethereum State
 		es.DbBuf, err = memdb.Dump()
 		if err != nil {
 			return nil, nil, err
 		}
+
+		log.LLvl1("dbBuf credit after", es.DbBuf)
 
 		//Saves the Ethereum structure
 		esBuf, err := protobuf.Encode(&es)
@@ -165,6 +182,7 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		if err != nil {
 			return nil, nil, err
 		}
+		log.Printf("%x", es.RootHash)
 
 		//Commits the low level trieDB
 		err = db.Database().TrieDB().Commit(es.RootHash, true)
@@ -177,6 +195,7 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		if err != nil {
 			return nil, nil, err
 		}
+		//log.Printf("dbBuf is: %x", sha256.Sum256(es.DbBuf))
 
 		//Encodes the Ethereum structure
 		esBuf, err := protobuf.Encode(&es)
@@ -195,6 +214,10 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		return
 
 	}
+	/*
+	for i, sc := range sc{
+		log.Printf("state-change %d is %x", i, sha256.Sum256(sc.Value))
+	}*/
 	return
 }
 

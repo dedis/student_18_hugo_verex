@@ -17,7 +17,10 @@
 package byzcoin
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"errors"
+	"sort"
 	"sync"
 
 	"github.com/dedis/onet/log"
@@ -27,18 +30,34 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 )
 
+
+
 //MemDatabase structure
 type MemDatabase struct {
 	DB   map[string][]byte
 	lock sync.RWMutex
 }
 
+type KeyValues struct {
+	KVs []KeyValueEntry
+}
+
+type KeyValueEntry struct{
+	Key []byte
+	Value []byte
+}
+
 //NewMemDatabase creates a new memory database
 func NewMemDatabase(data []byte) (*MemDatabase, error) {
+    kvs := &KeyValues{}
+	err := protobuf.Decode(data, kvs)
 	DB := &MemDatabase{
 		DB: map[string][]byte{},
 	}
-	err := protobuf.Decode(data, DB)
+	for _, kv := range kvs.KVs{
+		DB.DB[string(kv.Key)] = kv.Value
+		log.LLvl1("here")
+	}
 	if err != nil {
 		log.Lvl1("Error with memory database", err)
 		return nil, err
@@ -55,7 +74,16 @@ func NewMemDatabaseWithCap(size int) *MemDatabase {
 
 //Dump encodes the data back
 func (db *MemDatabase) Dump() ([]byte, error) {
-	return protobuf.Encode(db)
+	log.LLvl1("dumping")
+	kvs := &KeyValues{}
+	for key, value := range db.DB{
+		kvs.KVs = append(kvs.KVs, KeyValueEntry{Key: []byte(key), Value: value})
+	}
+	log.LLvl1(kvs)
+	sort.Slice(kvs.KVs, func(i, j int) bool{
+		return bytes.Compare(kvs.KVs[i].Key, kvs.KVs[j].Key) < 0
+	})
+	return protobuf.Encode(kvs)
 }
 
 //Put :
@@ -131,6 +159,10 @@ type memBatch struct {
 }
 
 func (b *memBatch) Put(key, value []byte) error {
+	h := sha256.New()
+	h.Write(key)
+	h.Write(value)
+	//log.Printf("%x: %x / %x", h.Sum(nil), key, value)
 	b.writes = append(b.writes, kv{common.CopyBytes(key), common.CopyBytes(value), false})
 	b.size += len(value)
 	return nil
@@ -145,14 +177,18 @@ func (b *memBatch) Delete(key []byte) error {
 func (b *memBatch) Write() error {
 	b.db.lock.Lock()
 	defer b.db.lock.Unlock()
-
+	/*
 	for _, kv := range b.writes {
+		h := sha256.New()
+		h.Write(kv.k)
+		h.Write(kv.v)
+		log.Printf("%x: %x / %x", h.Sum(nil), kv.k, kv.v)
 		if kv.del {
 			delete(b.db.DB, string(kv.k))
 			continue
 		}
 		b.db.DB[string(kv.k)] = kv.v
-	}
+	}*/
 	return nil
 }
 

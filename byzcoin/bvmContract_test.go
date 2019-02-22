@@ -106,8 +106,28 @@ func TestInvoke_Credit_Accounts(t *testing.T){
 		}
 		bct.creditAccountInstance(t, instID, args)
 		bct.ct = bct.ct + 1
+		// Get the proof from byzcoin
+		reply, err := bct.cl.GetProof(instID.Slice())
+		require.Nil(t, err)
+
+		//Make sure the proof is a matching proof and not a proof of absence.
+		pr := reply.Proof
+		require.True(t, pr.InclusionProof.Match(instID.Slice()))
+
+		_, err = bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
+		require.Nil(t, err)
 		bct.displayAccountInstance(t, instID, args)
 		bct.ct = bct.ct + 1
+		// Get the proof from byzcoin
+		reply, err = bct.cl.GetProof(instID.Slice())
+		require.Nil(t, err)
+
+		//Make sure the proof is a matching proof and not a proof of absence.
+		pr = reply.Proof
+		require.True(t, pr.InclusionProof.Match(instID.Slice()))
+
+		_, err = bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
+		require.Nil(t, err)
 	}
 }
 
@@ -176,11 +196,12 @@ func TestInvoke_DeployToken(t *testing.T) {
 	s := []string{}
 	s = append(s, bytecode)
 
+	//TODO: create encodeConstructorArgument function
 	//Constructor arguments encoded using abi specification :  (addressA, 100)
 	encodedArgs := "0000000000000000000000002afd357e96a3acbcd01615681c1d7e3398d5fb610000000000000000000000000000000000000000000000000000000000000064"
 	s = append(s, encodedArgs)
 	data := strings.Join(s, "")
-	log.LLvl1(data)
+
 
 	//Ethereum transaction for deploying new contract
 	deployTx := types.NewContractCreation(0,  big.NewInt(0), gasLimit, gasPrice, common.Hex2Bytes(data))
@@ -205,7 +226,6 @@ func TestInvoke_DeployToken(t *testing.T) {
 	// Make sure the proof is a matching proof and not a proof of absence.
 	pr = reply.Proof
 	require.True(t, pr.InclusionProof.Match(instID.Slice()))
-
 
 
 	args = byzcoin.Arguments{
@@ -278,22 +298,6 @@ func abiMethodPack(contractABI string, methodCall string,  args ...interface{}) 
 	return abiCall, nil
 }
 
-func TestCreateConstructor(t *testing.T){
-	_, bytecode := getSmartContract("MinimumToken")
-	//test := `{"inputs":[{"name": "from", "type": "address"},{"name":"_total", "type":"uint256"}], "payable":false, "stateMutability":"nonpayable", "type":"constructor"}`
-	//ABI, err := abi.JSON(strings.NewReader(test))
-	//require.Nil(t, err)
-	byteAddress := common.Hex2Bytes("0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61")
-	log.LLvl1("address to bytes", byteAddress, common.Bytes2Hex(byteAddress))
-
-	s := []string{}
-	s = append(s, bytecode)
-	encodedArgs := "0000000000000000000000002afd357e96a3acbcd01615681c1d7e3398d5fb610000000000000000000000000000000000000000000000000000000000000064"
-	s = append(s, encodedArgs)
-	test := strings.Join(s, "")
-	log.LLvl1(test)
-}
-
 //Return gas parameters for easy modification
 func transactionGasParameters()(gasLimit uint64, gasPrice *big.Int){
 	gasLimit = uint64(1e7)
@@ -333,7 +337,7 @@ func newBCTest(t *testing.T) (out *bcTest) {
 
 	// This BlockInterval is good for testing, but in real world applications this
 	// should be more like 5 seconds.
-	out.gMsg.BlockInterval = time.Second / 2
+	out.gMsg.BlockInterval = time.Second 
 
 	out.cl, _, err = byzcoin.NewLedger(out.gMsg, false)
 	require.Nil(t, err)
