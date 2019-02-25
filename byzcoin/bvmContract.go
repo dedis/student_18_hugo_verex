@@ -49,7 +49,6 @@ func (c *contractBvm) Spawn(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruct
 		return nil, nil, err
 	}
 	es.DbBuf, err = memdb.Dump()
-	log.LLvl1("DbBuf end of Spawn", es.DbBuf)
 	esBuf, err := protobuf.Encode(&es)
 	// Then create a StateChange request with the data of the instance. The
 	// InstanceID is given by the DeriveID method of the instruction that allows
@@ -87,12 +86,11 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		if err !=nil {
 			return nil, nil, err
 		}
-		log.LLvl1("passed db display")
 		ret := db.GetBalance(address)
 		if ret == big.NewInt(0) {
 			log.LLvl1(address.Hex(), "balance empty")
 		}
-		log.LLvl1("check:", address.Hex(), "balance", ret.Uint64()/1e18, "ether" )
+		log.LLvl1("check:", address.Hex(), "balance", ret.Uint64(), "ether" )
 		return nil, nil, nil
 
 	case "credit":
@@ -122,13 +120,11 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 			return nil, nil, err
 		}
 
-		log.LLvl1("dbBuf credit before", es.DbBuf)
 		//Saves the general Ethereum State
 		es.DbBuf, err = memdb.Dump()
 		if err != nil {
 			return nil, nil, err
 		}
-		log.LLvl1("dbBuf credit after", es.DbBuf)
 
 		//Saves the Ethereum structure
 		esBuf, err := protobuf.Encode(&es)

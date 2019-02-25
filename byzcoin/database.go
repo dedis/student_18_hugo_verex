@@ -49,9 +49,12 @@ type KeyValueEntry struct{
 
 //NewMemDatabase creates a new memory database
 func NewMemDatabase(data []byte) (*MemDatabase, error) {
-	log.LLvl1("data NewMemDb", data)
     kvs := &KeyValues{}
 	err := protobuf.Decode(data, kvs)
+	if err != nil{
+		log.LLvl1("error decoding data")
+		return nil, err
+	}
 	DB := &MemDatabase{
 		DB: map[string][]byte{},
 	}
@@ -175,18 +178,18 @@ func (b *memBatch) Delete(key []byte) error {
 func (b *memBatch) Write() error {
 	b.db.lock.Lock()
 	defer b.db.lock.Unlock()
-	/*
+
 	for _, kv := range b.writes {
 		h := sha256.New()
 		h.Write(kv.k)
 		h.Write(kv.v)
-		log.Printf("%x: %x / %x", h.Sum(nil), kv.k, kv.v)
+		//log.Printf("%x: %x / %x", h.Sum(nil), kv.k, kv.v)
 		if kv.del {
 			delete(b.db.DB, string(kv.k))
 			continue
 		}
 		b.db.DB[string(kv.k)] = kv.v
-	}*/
+	}
 	return nil
 }
 

@@ -167,6 +167,7 @@ func TestInvoke_DeployToken(t *testing.T) {
 		},
 	}
 
+	log.LLvl1("credit")
 	//Send credit instructions to Byzcoin and incrementing nonce counter
 	bct.creditAccountInstance(t, instID, args)
 	bct.ct = bct.ct +1
@@ -177,6 +178,7 @@ func TestInvoke_DeployToken(t *testing.T) {
 	pr = reply.Proof
 	require.True(t, pr.InclusionProof.Match(instID.Slice()))
 
+	log.LLvl1("display")
 	//Verifying account credit
 	bct.displayAccountInstance(t, instID, args)
 	bct.ct = bct.ct +1
@@ -216,10 +218,10 @@ func TestInvoke_DeployToken(t *testing.T) {
 			Value: signedTxBuffer,
 		},
 	}
-
+	log.LLvl1("deploy")
 	//Sends deploy transaction to Byzcoin
 	bct.transactionInstance(t, instID, args)
-	bct.ct = bct.ct +1
+	//bct.ct = bct.ct +1
 	// Get the proof from byzcoin
 	reply, err = bct.cl.GetProof(instID.Slice())
 	require.Nil(t, err)
@@ -234,6 +236,8 @@ func TestInvoke_DeployToken(t *testing.T) {
 			Value: addressABuffer,
 		},
 	}
+	time.Sleep(5)
+	log.LLvl1("display")
 	//Verifying account credit
 	bct.displayAccountInstance(t, instID, args)
 	bct.ct = bct.ct +1
@@ -255,7 +259,7 @@ func TestInvoke_DeployToken(t *testing.T) {
 	require.Nil(t, err)
 
 	//create transaction
-	sendTxAB := types.NewTransaction(0, contractAddress, big.NewInt(0), gasLimit, gasPrice, methodBuf)
+	sendTxAB := types.NewTransaction(1, contractAddress, big.NewInt(0), gasLimit, gasPrice, methodBuf)
 	txBufferAB, err := signAndMarshalTx(privateA, sendTxAB)
 	require.Nil(t, err)
 	args = byzcoin.Arguments{
@@ -267,7 +271,7 @@ func TestInvoke_DeployToken(t *testing.T) {
 	}
 	bct.transactionInstance(t,instID, args)
 	bct.ct = bct.ct +1
-	log.LLvl1("all transaction realised")
+	log.LLvl1("all transactions realised")
 }
 
 //Signs the transaction with a private key and returns the transaction in byte format, ready to be included into the Byzcoin transaction
