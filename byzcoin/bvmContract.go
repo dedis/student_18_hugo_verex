@@ -40,21 +40,17 @@ func (c *contractBvm) Spawn(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruct
 	if err != nil{
 		return nil, nil, err
 	}
-	log.LLvl1("spawn db", db)
 	es.RootHash, err = db.Commit(true)
 	if err != nil {
 		return nil, nil, err
 	}
-	log.LLvl1("spawn commit successful root hash", es.RootHash.Hex())
 	err = db.Database().TrieDB().Commit(es.RootHash, true)
 	if err != nil {
 		return nil, nil, err
 	}
 	es.DbBuf, err = memdb.Dump()
-	log.LLvl1("memdb spawn", memdb.DB)
+	log.LLvl1("DbBuf end of Spawn", es.DbBuf)
 	esBuf, err := protobuf.Encode(&es)
-
-	log.LLvl1("DbBuf spawn", es.DbBuf )
 	// Then create a StateChange request with the data of the instance. The
 	// InstanceID is given by the DeriveID method of the instruction that allows
 	// to create multiple instanceIDs out of a given instruction in a pseudo-
@@ -66,7 +62,6 @@ func (c *contractBvm) Spawn(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruct
 	for i, sc := range sc{
 		log.Printf("state-change %d is %x", i, sha256.Sum256(sc.Value))
 	}*/
-	log.LLvl1("spawn okay,root hash", es.RootHash.Hex())
 	return
 }
 
@@ -128,13 +123,11 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		}
 
 		log.LLvl1("dbBuf credit before", es.DbBuf)
-
 		//Saves the general Ethereum State
 		es.DbBuf, err = memdb.Dump()
 		if err != nil {
 			return nil, nil, err
 		}
-
 		log.LLvl1("dbBuf credit after", es.DbBuf)
 
 		//Saves the Ethereum structure

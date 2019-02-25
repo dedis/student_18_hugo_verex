@@ -49,6 +49,7 @@ type KeyValueEntry struct{
 
 //NewMemDatabase creates a new memory database
 func NewMemDatabase(data []byte) (*MemDatabase, error) {
+	log.LLvl1("data NewMemDb", data)
     kvs := &KeyValues{}
 	err := protobuf.Decode(data, kvs)
 	DB := &MemDatabase{
@@ -56,7 +57,6 @@ func NewMemDatabase(data []byte) (*MemDatabase, error) {
 	}
 	for _, kv := range kvs.KVs{
 		DB.DB[string(kv.Key)] = kv.Value
-		log.LLvl1("here")
 	}
 	if err != nil {
 		log.Lvl1("Error with memory database", err)
@@ -74,12 +74,10 @@ func NewMemDatabaseWithCap(size int) *MemDatabase {
 
 //Dump encodes the data back
 func (db *MemDatabase) Dump() ([]byte, error) {
-	log.LLvl1("dumping")
 	kvs := &KeyValues{}
 	for key, value := range db.DB{
 		kvs.KVs = append(kvs.KVs, KeyValueEntry{Key: []byte(key), Value: value})
 	}
-	log.LLvl1(kvs)
 	sort.Slice(kvs.KVs, func(i, j int) bool{
 		return bytes.Compare(kvs.KVs[i].Key, kvs.KVs[j].Key) < 0
 	})

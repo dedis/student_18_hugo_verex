@@ -125,7 +125,6 @@ func getDB(es ES) (*MemDatabase, *state.StateDB, error) {
 		return nil, nil, err
 	}
 	db := state.NewDatabase(memDB)
-	log.LLvl1("root hash getDB",es.RootHash.Hex())
 	sdb, err := state.New(es.RootHash, db)
 	if err != nil {
 		return nil, nil, err
