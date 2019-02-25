@@ -199,6 +199,7 @@ func TestInvoke_DeployToken(t *testing.T) {
 	s = append(s, bytecode)
 
 	//TODO: create encodeConstructorArgument function
+	//use the abiPack method with no function name provided
 	//Constructor arguments encoded using abi specification :  (addressA, 100)
 	encodedArgs := "0000000000000000000000002afd357e96a3acbcd01615681c1d7e3398d5fb610000000000000000000000000000000000000000000000000000000000000064"
 	s = append(s, encodedArgs)
@@ -253,9 +254,9 @@ func TestInvoke_DeployToken(t *testing.T) {
 	//TRANSACT A to B
 	//Now send a token transaction from A to B
 	addressB := "0x2887A24130cACFD8f71C479d9f9Da5b9C6425CE8"
-	toAddress := common.HexToAddress(addressB)
 	fromAddress := common.HexToAddress(addressA)
-	methodBuf, err := abiMethodPack(RawAbi, "transferFrom",fromAddress, toAddress, big.NewInt(1))
+	toAddress := common.HexToAddress(addressB)
+	methodBuf, err := abiMethodPack(RawAbi, "transferFrom", fromAddress, toAddress, big.NewInt(2))
 	require.Nil(t, err)
 
 	//create transaction
@@ -298,7 +299,11 @@ func abiMethodPack(contractABI string, methodCall string,  args ...interface{}) 
 	if err != nil {
 		return nil, err
 	}
-	abiCall, err := ABI.Pack(methodCall, args)
+	abiCall, err := ABI.Pack(methodCall, args...)
+	if err != nil {
+		log.LLvl1("error in packing args", err)
+		return nil, err
+	}
 	return abiCall, nil
 }
 
