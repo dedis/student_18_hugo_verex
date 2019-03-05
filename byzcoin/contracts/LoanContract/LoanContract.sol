@@ -56,7 +56,6 @@ contract LoanContract {
         if (currentState == State.WaitingForData) {
             uint256 balance = tokenContractAddress.balanceOf(address(this));
             if (balance >= tokenAmount) {
-
                 currentState = State.WaitingForLender;
             }
 
