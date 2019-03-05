@@ -148,21 +148,18 @@ func TestInvoke_DeployToken(t *testing.T) {
 	_, err = bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
 	require.Nil(t, err)
 
-
 	//CREDIT
-	//Crediting account to have enough ether to deploy
+	//Crediting two accounts to have enough ether for tests
 	addressA := "0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61"
 	addressABuffer := []byte(addressA)
-	args = byzcoin.Arguments{
+	argsA := byzcoin.Arguments{
 		{
 			Name: "address",
 			Value: addressABuffer,
 		},
 	}
-
-	log.LLvl1("credit")
 	//Send credit instructions to Byzcoin and incrementing nonce counter
-	bct.creditAccountInstance(t, instID, args)
+	bct.creditAccountInstance(t, instID, argsA)
 	// Get the proof from byzcoin
 	reply, err = bct.cl.GetProof(instID.Slice())
 	require.Nil(t, err)
@@ -170,23 +167,53 @@ func TestInvoke_DeployToken(t *testing.T) {
 	pr = reply.Proof
 	require.True(t, pr.InclusionProof.Match(instID.Slice()))
 
-	log.LLvl1("display")
-	//Verifying account credit
-	bct.displayAccountInstance(t, instID, args)
+
+
+	//Crediting second account to have enough ether to deploy
+	addressB := "0x2887A24130cACFD8f71C479d9f9Da5b9C6425CE8"
+	addressBBuffer := []byte(addressB)
+	argsB := byzcoin.Arguments{
+		{
+			Name: "address",
+			Value: addressBBuffer,
+		},
+	}
+	//Send credit instructions to Byzcoin and incrementing nonce counter
+	bct.creditAccountInstance(t, instID, argsB)
 	// Get the proof from byzcoin
 	reply, err = bct.cl.GetProof(instID.Slice())
 	require.Nil(t, err)
 	// Make sure the proof is a matching proof and not a proof of absence.
 	pr = reply.Proof
 	require.True(t, pr.InclusionProof.Match(instID.Slice()))
+
+
+	//DISPLAY
+	//Verifying both accounts credit
+	bct.displayAccountInstance(t, instID, argsA)
+	// Get the proof from byzcoin
+	reply, err = bct.cl.GetProof(instID.Slice())
+	require.Nil(t, err)
+	// Make sure the proof is a matching proof and not a proof of absence.
+	pr = reply.Proof
+	require.True(t, pr.InclusionProof.Match(instID.Slice()))
+
+	//Verifying second account credit
+	bct.displayAccountInstance(t, instID, argsB)
+	// Get the proof from byzcoin
+	reply, err = bct.cl.GetProof(instID.Slice())
+	require.Nil(t, err)
+	// Make sure the proof is a matching proof and not a proof of absence.
+	pr = reply.Proof
+	require.True(t, pr.InclusionProof.Match(instID.Slice()))
+
 
 	//Getting smart-contract abi and bytecode
 	RawAbi, bytecode := getSmartContract("MinimumToken")
-
 	//Getting transaction parameters
 	gasLimit, gasPrice := transactionGasParameters()
 
-	//use the abiPack method with no function name provided
+	//use the abiPack method with no function name provided to abi encode constructor arguments
 	//Constructor arguments encoded using abi specification :  (addressA, 100)
 	encodedConstructor, err := abiMethodPack(RawAbi,"", common.HexToAddress(addressA), big.NewInt(100))
 	require.Nil(t, err)
@@ -195,7 +222,6 @@ func TestInvoke_DeployToken(t *testing.T) {
 	encodedArgs := common.Bytes2Hex(encodedConstructor)
 	s = append(s, encodedArgs)
 	data := strings.Join(s, "")
-
 	//Ethereum transaction for deploying new contract
 	deployTx := types.NewContractCreation(0,  big.NewInt(0), gasLimit, gasPrice, common.Hex2Bytes(data))
 	//Signing transaction with private key corresponding to addressA
@@ -208,7 +234,6 @@ func TestInvoke_DeployToken(t *testing.T) {
 			Value: signedTxBuffer,
 		},
 	}
-	log.LLvl1("deploy")
 	//Sends deploy transaction to Byzcoin
 	bct.transactionInstance(t, instID, args)
 	// Get the proof from byzcoin
@@ -217,26 +242,12 @@ func TestInvoke_DeployToken(t *testing.T) {
 	// Make sure the proof is a matching proof and not a proof of absence.
 	pr = reply.Proof
 	require.True(t, pr.InclusionProof.Match(instID.Slice()))
-	args = byzcoin.Arguments{
-		{
-			Name: "address",
-			Value: addressABuffer,
-		},
-	}
-	log.LLvl1("display")
-	//Verifying account credit
-	bct.displayAccountInstance(t, instID, args)
-	// Get the proof from byzcoin
-	reply, err = bct.cl.GetProof(instID.Slice())
-	require.Nil(t, err)
-	// Make sure the proof is a matching proof and not a proof of absence.
-	pr = reply.Proof
-	require.True(t, pr.InclusionProof.Match(instID.Slice()))
 
+	log.LLvl1("send two tokens from address a to b")
 	//TRANSACT A to B
 	//Now send a token transaction from A to B
 	contractAddress := crypto.CreateAddress(common.HexToAddress(addressA), deployTx.Nonce())
-	addressB := "0x2887A24130cACFD8f71C479d9f9Da5b9C6425CE8"
+
 	fromAddress := common.HexToAddress(addressA)
 	toAddress := common.HexToAddress(addressB)
 	methodBuf, err := abiMethodPack(RawAbi, "transferFrom", fromAddress, toAddress, big.NewInt(2))
@@ -254,18 +265,6 @@ func TestInvoke_DeployToken(t *testing.T) {
 		},
 	}
 	bct.transactionInstance(t,instID, args)
-	//CREDIT
-	//Crediting account to have enough ether to deploy
-	addressBBuffer := []byte(addressB)
-	args = byzcoin.Arguments{
-		{
-			Name: "address",
-			Value: addressBBuffer,
-		},
-	}
-	log.LLvl1("credit")
-	//Send credit instructions to Byzcoin and incrementing nonce counter
-	bct.creditAccountInstance(t, instID, args)
 	// Get the proof from byzcoin
 	reply, err = bct.cl.GetProof(instID.Slice())
 	require.Nil(t, err)
@@ -273,7 +272,7 @@ func TestInvoke_DeployToken(t *testing.T) {
 	pr = reply.Proof
 	require.True(t, pr.InclusionProof.Match(instID.Slice()))
 
-
+	log.LLvl1("send one token back from address b to a")
 	//TRANSACT B to A
 	//Now send back the token
 	privateB := "a3e6a98125c8f88fdcb45f13ad65e762b8662865c214ff85e1b1f3efcdffbcc1"
@@ -291,7 +290,31 @@ func TestInvoke_DeployToken(t *testing.T) {
 		},
 	}
 	bct.transactionInstance(t,instID, args)
-	log.LLvl1("all transactions realised")
+	// Get the proof from byzcoin
+	reply, err = bct.cl.GetProof(instID.Slice())
+	require.Nil(t, err)
+	// Make sure the proof is a matching proof and not a proof of absence.
+	pr = reply.Proof
+	require.True(t, pr.InclusionProof.Match(instID.Slice()))
+	
+	//DISPLAY
+	//Verifying both accounts credit were deducted from the gas fees
+	bct.displayAccountInstance(t, instID, argsA)
+	// Get the proof from byzcoin
+	reply, err = bct.cl.GetProof(instID.Slice())
+	require.Nil(t, err)
+	// Make sure the proof is a matching proof and not a proof of absence.
+	pr = reply.Proof
+	require.True(t, pr.InclusionProof.Match(instID.Slice()))
+
+	//Verifying second account credit
+	bct.displayAccountInstance(t, instID, argsB)
+	// Get the proof from byzcoin
+	reply, err = bct.cl.GetProof(instID.Slice())
+	require.Nil(t, err)
+	// Make sure the proof is a matching proof and not a proof of absence.
+	pr = reply.Proof
+	require.True(t, pr.InclusionProof.Match(instID.Slice()))
 }
 
 //Signs the transaction with a private key and returns the transaction in byte format, ready to be included into the Byzcoin transaction
