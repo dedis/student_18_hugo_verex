@@ -76,7 +76,6 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 	switch inst.Invoke.Command {
 
 	case "display":
-
 		addressBuf := inst.Invoke.Args.Search("address")
 		if addressBuf == nil {
 			return nil, nil, errors.New("no address provided")
@@ -90,7 +89,7 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		if ret == big.NewInt(0) {
 			log.LLvl1(address.Hex(), "balance empty")
 		}
-		log.LLvl1("check:", address.Hex(), "balance", ret.Uint64(), "ether" )
+		log.LLvl1("check:", address.Hex(), "balance", ret.Uint64(), "wei" )
 		return nil, nil, nil
 
 	case "credit":
@@ -106,7 +105,7 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 
 		//By default credit, credits 5*1e18 wei. To change this, add a new parameter to the byzcoin transaction with the desired value
 		db.SetBalance(address, big.NewInt(1e18*5))
-		log.LLvl1(address.Hex(), "credited 5 eth")
+		log.Lvl1("default balance set, 5 eth")
 
 		//Commits the general stateDb
 		es.RootHash, err = db.Commit(true)
@@ -171,7 +170,6 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		if err != nil {
 			return nil, nil, err
 		}
-		log.Printf("%x", es.RootHash)
 
 		//Commits the low level trieDB
 		err = db.Database().TrieDB().Commit(es.RootHash, true)

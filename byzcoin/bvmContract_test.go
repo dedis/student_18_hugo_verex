@@ -49,15 +49,10 @@ func TestInvoke_Credit(t *testing.T) {
 	defer bct.Close()
 	address := "0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61"
 	addressB := []byte(address)
-	value := []byte("1")
 	args := byzcoin.Arguments{
 		{
 			Name:  "address",
 			Value: addressB,
-		},
-		{
-			Name:  "value",
-			Value: value,
 		},
 	}
 	instID := bct.createInstance(t, args)
@@ -95,19 +90,13 @@ func TestInvoke_Credit_Accounts(t *testing.T){
 	pr := reply.Proof
 	require.True(t, pr.InclusionProof.Match(instID.Slice()))
 
-	//TODO : simpler addresses
 	addresses := [3]string{"0x627306090abab3a6e1400e9345bc60c78a8bef57", "0xf17f52151ebef6c7334fad080c5704d77216b732", "0xc5fdf4076b8f3a5357c5e395ab970b5b54098fef"}
 	for i:=0;i<3;i++{
 		addressBuf := []byte(addresses[i])
-		value := []byte("1")
 		args := byzcoin.Arguments{
 			{
 				Name:  "address",
 				Value: addressBuf,
-			},
-			{
-				Name:  "value",
-				Value: value,
 			},
 		}
 		bct.creditAccountInstance(t, instID, args)
@@ -197,16 +186,15 @@ func TestInvoke_DeployToken(t *testing.T) {
 	//Getting transaction parameters
 	gasLimit, gasPrice := transactionGasParameters()
 
-	s := []string{}
-	s = append(s, bytecode)
-
-	//TODO: create encodeConstructorArgument function
 	//use the abiPack method with no function name provided
 	//Constructor arguments encoded using abi specification :  (addressA, 100)
-	encodedArgs := "0000000000000000000000002afd357e96a3acbcd01615681c1d7e3398d5fb610000000000000000000000000000000000000000000000000000000000000064"
+	encodedConstructor, err := abiMethodPack(RawAbi,"", common.HexToAddress(addressA), big.NewInt(100))
+	require.Nil(t, err)
+	s := []string{}
+	s = append(s, bytecode)
+	encodedArgs := common.Bytes2Hex(encodedConstructor)
 	s = append(s, encodedArgs)
 	data := strings.Join(s, "")
-
 
 	//Ethereum transaction for deploying new contract
 	deployTx := types.NewContractCreation(0,  big.NewInt(0), gasLimit, gasPrice, common.Hex2Bytes(data))
@@ -526,11 +514,11 @@ func TestInvoke_LoanContract(t *testing.T){
 
 	//Send credit instructions to Byzcoin and incrementing nonce counter
 	bct.creditAccountInstance(t, instID, args)
-	bct.ct = bct.ct +1
+
 
 	//Verifying account credit
 	bct.displayAccountInstance(t, instID, args)
-	bct.ct = bct.ct +1
+
 
 	//DEPLOY
 	//Getting smartcontract abi and bytecode
@@ -539,8 +527,23 @@ func TestInvoke_LoanContract(t *testing.T){
 	//Getting transaction parameters
 	gasLimit, gasPrice := transactionGasParameters()
 
+	//constructor (uint256 _wantedAmount, uint256 _interest, uint256 _tokenAmount, string _tokenName, ERC20Token _tokenContractAddress, uint256 _length) public {
+
+
+	//CONSTRUCTOR
+	//Once deployed we will now send the constructor arguments
+	//constructor (uint256 _wantedAmount, uint256 _interest, uint256 _tokenAmount, string _tokenName, ERC20Token _tokenContractAddress, uint256 _length) public {
+	tokenContractAddress := "0xdac17f958d2ee523a2206206994597c13d831ec7"
+	constructorData, err := abiMethodPack(rawAbi, "", big.NewInt(3), big.NewInt(1), big.NewInt(10000), "USDT", tokenContractAddress, big.NewInt(10))
+	require.Nil(t, err)
+	s := []string{}
+	s = append(s, bytecode)
+	encodedArgs := common.Bytes2Hex(constructorData)
+	s = append(s, encodedArgs)
+	data := strings.Join(s, "")
+
 	//Creating deploying transaction
-	deployTx := types.NewContractCreation(0,  big.NewInt(0), gasLimit, gasPrice, common.Hex2Bytes(bytecode))
+	deployTx := types.NewContractCreation(0,  big.NewInt(0), gasLimit, gasPrice, common.Hex2Bytes(data))
 
 	//Signing transaction with private key corresponding to addressA
 	privateA := "a33fca62081a2665454fe844a8afbe8e2e02fb66af558e695a79d058f9042f0d"
@@ -554,35 +557,13 @@ func TestInvoke_LoanContract(t *testing.T){
 	}
 
 	bct.transactionInstance(t, instID, args)
-	bct.ct = bct.ct +1
-
-
-	//CONSTRUCTOR
-	//Once deployed we will now send the constructor arguments
-	//constructor (uint256 _wantedAmount, uint256 _interest, uint256 _tokenAmount, string _tokenName, ERC20Token _tokenContractAddress, uint256 _length) public {
-	tokenContractAddress := "0xdac17f958d2ee523a2206206994597c13d831ec7"
-	constructorData, err := abiMethodPack(rawAbi, "constructor", big.NewInt(3), big.NewInt(1), big.NewInt(10000), "USDT", tokenContractAddress, big.NewInt(10))
-	require.Nil(t, err)
 	contractAddress := crypto.CreateAddress(common.HexToAddress(addressA), deployTx.Nonce())
-	constructorTx := types.NewTransaction(1, contractAddress, big.NewInt(0), gasLimit, gasPrice, constructorData)
-	txBuffer, err := signAndMarshalTx(privateA, constructorTx)
-	require.Nil(t, err)
-	args = byzcoin.Arguments{
-		{
-			Name: "tx",
-			Value: txBuffer,
-
-		},
-	}
-	bct.transactionInstance(t,instID, args)
-	bct.ct = bct.ct + 1
 
 	//CHECK TOKENS
-
 	checkTokenData, err := abiMethodPack(rawAbi, "checkTokens")
 	require.Nil(t,err)
 	checkTokenTx := types.NewTransaction(2, contractAddress, big.NewInt(0), gasLimit, gasPrice, checkTokenData)
-	txBuffer, err = signAndMarshalTx(privateA, checkTokenTx)
+	txBuffer, err := signAndMarshalTx(privateA, checkTokenTx)
 	require.Nil(t, err)
 	args = byzcoin.Arguments{
 		{
@@ -592,15 +573,13 @@ func TestInvoke_LoanContract(t *testing.T){
 		},
 	}
 	bct.transactionInstance(t,instID, args)
-	bct.ct = bct.ct + 1
+
 
 	//LEND
-
 	addressB := "0x2887A24130cACFD8f71C479d9f9Da5b9C6425CE8"
 	privateB := "a3e6a98125c8f88fdcb45f13ad65e762b8662865c214ff85e1b1f3efcdffbcc1"
 
 	//CREDIT account B for lending
-
 	addressBBuffer := []byte(addressB)
 	args = byzcoin.Arguments{
 		{
@@ -626,8 +605,6 @@ func TestInvoke_LoanContract(t *testing.T){
 		},
 	}
 	bct.transactionInstance(t,instID, args)
-	bct.ct = bct.ct + 1
-}
+}*/
 
-*/
 
