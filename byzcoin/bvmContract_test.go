@@ -1,7 +1,8 @@
 package byzcoin
 
 import (
-	"github.com/dedis/onet/log"
+	"go.dedis.ch/cothority/v3"
+	"go.dedis.ch/onet/v3/log"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -11,10 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dedis/cothority"
-	"github.com/dedis/cothority/byzcoin"
-	"github.com/dedis/cothority/darc"
-	"github.com/dedis/onet"
+	"go.dedis.ch/cothority/v3/byzcoin"
+	"go.dedis.ch/cothority/v3/darc"
+	"go.dedis.ch/onet/v3"
 	"github.com/stretchr/testify/require"
 )
 
@@ -63,8 +63,13 @@ func TestInvoke_Credit(t *testing.T) {
 	instID := bct.createInstance(t, args)
 	_, err := bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
 	require.Nil(t, err)
+
 	bct.creditAccountInstance(t, instID, args)
-	bct.ct = bct.ct + 1
+	reply, err := bct.cl.GetProof(instID.Slice())
+	require.Nil(t, err)
+	pr := reply.Proof
+	require.True(t, pr.InclusionProof.Match(instID.Slice()))
+
 	bct.displayAccountInstance(t, instID, args)
 }
 
@@ -90,6 +95,7 @@ func TestInvoke_Credit_Accounts(t *testing.T){
 	pr := reply.Proof
 	require.True(t, pr.InclusionProof.Match(instID.Slice()))
 
+	//TODO : simpler addresses
 	addresses := [3]string{"0x627306090abab3a6e1400e9345bc60c78a8bef57", "0xf17f52151ebef6c7334fad080c5704d77216b732", "0xc5fdf4076b8f3a5357c5e395ab970b5b54098fef"}
 	for i:=0;i<3;i++{
 		addressBuf := []byte(addresses[i])
@@ -105,7 +111,6 @@ func TestInvoke_Credit_Accounts(t *testing.T){
 			},
 		}
 		bct.creditAccountInstance(t, instID, args)
-		bct.ct = bct.ct + 1
 		// Get the proof from byzcoin
 		reply, err := bct.cl.GetProof(instID.Slice())
 		require.Nil(t, err)
@@ -117,7 +122,6 @@ func TestInvoke_Credit_Accounts(t *testing.T){
 		_, err = bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
 		require.Nil(t, err)
 		bct.displayAccountInstance(t, instID, args)
-		bct.ct = bct.ct + 1
 		// Get the proof from byzcoin
 		reply, err = bct.cl.GetProof(instID.Slice())
 		require.Nil(t, err)
@@ -170,7 +174,6 @@ func TestInvoke_DeployToken(t *testing.T) {
 	log.LLvl1("credit")
 	//Send credit instructions to Byzcoin and incrementing nonce counter
 	bct.creditAccountInstance(t, instID, args)
-	bct.ct = bct.ct +1
 	// Get the proof from byzcoin
 	reply, err = bct.cl.GetProof(instID.Slice())
 	require.Nil(t, err)
@@ -181,7 +184,6 @@ func TestInvoke_DeployToken(t *testing.T) {
 	log.LLvl1("display")
 	//Verifying account credit
 	bct.displayAccountInstance(t, instID, args)
-	bct.ct = bct.ct +1
 	// Get the proof from byzcoin
 	reply, err = bct.cl.GetProof(instID.Slice())
 	require.Nil(t, err)
@@ -208,7 +210,6 @@ func TestInvoke_DeployToken(t *testing.T) {
 
 	//Ethereum transaction for deploying new contract
 	deployTx := types.NewContractCreation(0,  big.NewInt(0), gasLimit, gasPrice, common.Hex2Bytes(data))
-
 	//Signing transaction with private key corresponding to addressA
 	privateA := "a33fca62081a2665454fe844a8afbe8e2e02fb66af558e695a79d058f9042f0d"
 	signedTxBuffer, err := signAndMarshalTx(privateA, deployTx)
@@ -222,26 +223,21 @@ func TestInvoke_DeployToken(t *testing.T) {
 	log.LLvl1("deploy")
 	//Sends deploy transaction to Byzcoin
 	bct.transactionInstance(t, instID, args)
-	//bct.ct = bct.ct +1
 	// Get the proof from byzcoin
 	reply, err = bct.cl.GetProof(instID.Slice())
 	require.Nil(t, err)
 	// Make sure the proof is a matching proof and not a proof of absence.
 	pr = reply.Proof
 	require.True(t, pr.InclusionProof.Match(instID.Slice()))
-
-
 	args = byzcoin.Arguments{
 		{
 			Name: "address",
 			Value: addressABuffer,
 		},
 	}
-	time.Sleep(5)
 	log.LLvl1("display")
 	//Verifying account credit
 	bct.displayAccountInstance(t, instID, args)
-	bct.ct = bct.ct +1
 	// Get the proof from byzcoin
 	reply, err = bct.cl.GetProof(instID.Slice())
 	require.Nil(t, err)
@@ -249,10 +245,9 @@ func TestInvoke_DeployToken(t *testing.T) {
 	pr = reply.Proof
 	require.True(t, pr.InclusionProof.Match(instID.Slice()))
 
-	contractAddress := crypto.CreateAddress(common.HexToAddress(addressA), deployTx.Nonce())
-
 	//TRANSACT A to B
 	//Now send a token transaction from A to B
+	contractAddress := crypto.CreateAddress(common.HexToAddress(addressA), deployTx.Nonce())
 	addressB := "0x2887A24130cACFD8f71C479d9f9Da5b9C6425CE8"
 	fromAddress := common.HexToAddress(addressA)
 	toAddress := common.HexToAddress(addressB)
@@ -271,7 +266,43 @@ func TestInvoke_DeployToken(t *testing.T) {
 		},
 	}
 	bct.transactionInstance(t,instID, args)
-	bct.ct = bct.ct +1
+	//CREDIT
+	//Crediting account to have enough ether to deploy
+	addressBBuffer := []byte(addressB)
+	args = byzcoin.Arguments{
+		{
+			Name: "address",
+			Value: addressBBuffer,
+		},
+	}
+	log.LLvl1("credit")
+	//Send credit instructions to Byzcoin and incrementing nonce counter
+	bct.creditAccountInstance(t, instID, args)
+	// Get the proof from byzcoin
+	reply, err = bct.cl.GetProof(instID.Slice())
+	require.Nil(t, err)
+	// Make sure the proof is a matching proof and not a proof of absence.
+	pr = reply.Proof
+	require.True(t, pr.InclusionProof.Match(instID.Slice()))
+
+
+	//TRANSACT B to A
+	//Now send back the token
+	privateB := "a3e6a98125c8f88fdcb45f13ad65e762b8662865c214ff85e1b1f3efcdffbcc1"
+	methodBuf, err = abiMethodPack(RawAbi, "transferFrom", toAddress, fromAddress, big.NewInt(1))
+	require.Nil(t, err)
+	//create transaction
+	sendTxBA := types.NewTransaction(0, contractAddress, big.NewInt(0), gasLimit, gasPrice, methodBuf)
+	txBufferBA, err := signAndMarshalTx(privateB, sendTxBA)
+	require.Nil(t, err)
+	args = byzcoin.Arguments{
+		{
+			Name:  "tx",
+			Value: txBufferBA,
+
+		},
+	}
+	bct.transactionInstance(t,instID, args)
 	log.LLvl1("all transactions realised")
 }
 
@@ -340,7 +371,7 @@ func newBCTest(t *testing.T) (out *bcTest) {
 	// to create and update keyValue contracts.
 	var err error
 	out.gMsg, err = byzcoin.DefaultGenesisMsg(byzcoin.CurrentVersion, out.roster,
-		[]string{"spawn:bvm", "invoke:transaction", "invoke:display", "invoke:credit"}, out.signer.Identity())
+		[]string{"spawn:bvm", "invoke:bvm.display", "invoke:bvm.credit", "invoke:bvm.transaction"}, out.signer.Identity())
 	require.Nil(t, err)
 	out.gDarc = &out.gMsg.GenesisDarc
 
@@ -376,7 +407,7 @@ func (bct *bcTest) createInstance(t *testing.T, args byzcoin.Arguments) byzcoin.
 	bct.ct++
 	// And we need to sign the instruction with the signer that has his
 	// public key stored in the darc.
-	require.NoError(t, ctx.SignWith(bct.signer))
+	require.NoError(t, ctx.FillSignersAndSignWith(bct.signer))
 
 	// Sending this transaction to ByzCoin does not directly include it in the
 	// global state - first we must wait for the new block to be created.
@@ -397,10 +428,11 @@ func (bct *bcTest) displayAccountInstance(t *testing.T, instID byzcoin.InstanceI
 			},
 		}},
 	}
+	bct.ct++
+	ctx.Instructions[0].Invoke.ContractID = "bvm"
 	// And we need to sign the instruction with the signer that has his
 	// public key stored in the darc.
-	require.NoError(t, ctx.SignWith(bct.signer))
-
+	require.NoError(t, ctx.FillSignersAndSignWith(bct.signer))
 	// Sending this transaction to ByzCoin does not directly include it in the
 	// global state - first we must wait for the new block to be created.
 	var err error
@@ -419,9 +451,11 @@ func (bct *bcTest) creditAccountInstance(t *testing.T, instID byzcoin.InstanceID
 			},
 		}},
 	}
+	bct.ct++
+	ctx.Instructions[0].Invoke.ContractID = "bvm"
 	// And we need to sign the instruction with the signer that has his
 	// public key stored in the darc.
-	require.NoError(t, ctx.SignWith(bct.signer))
+	require.NoError(t, ctx.FillSignersAndSignWith(bct.signer))
 
 	// Sending this transaction to ByzCoin does not directly include it in the
 	// global state - first we must wait for the new block to be created.
@@ -442,9 +476,10 @@ func (bct *bcTest) transactionInstance(t *testing.T, instID byzcoin.InstanceID, 
 		}},
 	}
 	bct.ct++
+	ctx.Instructions[0].Invoke.ContractID = "bvm"
 	// And we need to sign the instruction with the signer that has his
 	// public key stored in the darc.
-	require.NoError(t, ctx.SignWith(bct.signer))
+	require.NoError(t, ctx.FillSignersAndSignWith(bct.signer))
 
 	// Sending this transaction to ByzCoin does not directly include it in the
 	// global state - first we must wait for the new block to be created.

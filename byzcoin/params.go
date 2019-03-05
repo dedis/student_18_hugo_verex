@@ -2,7 +2,7 @@ package byzcoin
 
 import (
 	"errors"
-	"github.com/dedis/onet/log"
+	"go.dedis.ch/onet/v3/log"
 	"io/ioutil"
 	"math/big"
 	"os"

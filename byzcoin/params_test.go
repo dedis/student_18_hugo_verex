@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dedis/onet/log"
+	"go.dedis.ch/onet/v3/log"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"

@@ -3,7 +3,7 @@ package byzcoin
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"github.com/dedis/onet/log"
+	"go.dedis.ch/onet/v3/log"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/crypto"

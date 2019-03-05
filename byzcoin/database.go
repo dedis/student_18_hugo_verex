@@ -23,9 +23,9 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/dedis/onet/log"
+	"go.dedis.ch/onet/v3/log"
 
-	"github.com/dedis/protobuf"
+	"go.dedis.ch/protobuf"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
 )

@@ -1,6 +1,6 @@
 package byzcoin
 
-import "github.com/dedis/cothority/byzcoin"
+import "go.dedis.ch/cothority/v3/byzcoin"
 
 // PROTOSTART
 // package keyvalue;
