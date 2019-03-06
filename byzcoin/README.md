@@ -51,7 +51,8 @@ Create an Ethereum transaction using the `NewTransaction` function of the types 
 then `signAndMarshalTx` and send to Byzcoin as above.
 
 ## Memory abstraction layers 
-![Memory Model](./images/bvmMemory.svg)
+
+![Memory Model](https://github.com/dedis/student_18_hugo_verex/public/images/bvmMemory.svg)
 
 ## Ethereum State
 
