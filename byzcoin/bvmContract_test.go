@@ -2,6 +2,7 @@ package byzcoin
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -317,6 +318,17 @@ func TestInvoke_DeployToken(t *testing.T) {
 	require.True(t, pr.InclusionProof.Match(instID.Slice()))
 }
 
+func Test_Keys(t *testing.T){
+	address, privateKey := GenerateKeys()
+	log.LLvl1(address, privateKey)
+
+	test, err := crypto.HexToECDSA(privateKey)
+	require.Nil(t, err)
+	txOpts := bind.NewKeyedTransactor(test)
+	log.LLvl1("is this, THE nonce?", txOpts.Nonce)
+
+}
+
 
 func TestInvoke_LoanContract(t *testing.T){
 	log.LLvl1("Deploying Loan Contract")
@@ -333,7 +345,6 @@ func TestInvoke_LoanContract(t *testing.T){
 	// Get the proof from byzcoin
 	reply, err := bct.cl.GetProof(instID.Slice())
 	require.Nil(t, err)
-
 	// Make sure the proof is a matching proof and not a proof of absence.
 	pr := reply.Proof
 	require.True(t, pr.InclusionProof.Match(instID.Slice()))
@@ -341,10 +352,12 @@ func TestInvoke_LoanContract(t *testing.T){
 	_, err = bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
 	require.Nil(t, err)
 
-
 	//CREDIT
 	//Preparing parameters to credit account to have enough ether to deploy
-	addressA := "0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61"
+	//adressA := "0x2afd357E96a3aCbcd01615681C1D7e3398d5fb61"
+	//privateA := "a33fca62081a2665454fe844a8afbe8e2e02fb66af558e695a79d058f9042f0d"
+	addressA, privateA := GenerateKeys()
+	nonceA := uint64(0)
 	addressABuffer := []byte(addressA)
 	args = byzcoin.Arguments{
 		{
@@ -355,41 +368,77 @@ func TestInvoke_LoanContract(t *testing.T){
 
 	//Send credit instructions to Byzcoin and incrementing nonce counter
 	bct.creditAccountInstance(t, instID, args)
+	// Get the proof from byzcoin
+	reply, err = bct.cl.GetProof(instID.Slice())
+	require.Nil(t, err)
+	// Make sure the proof is a matching proof and not a proof of absence.
+	pr = reply.Proof
+	require.True(t, pr.InclusionProof.Match(instID.Slice()))
 
+	_, err = bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
+	require.Nil(t, err)
 
 	//Verifying account credit
 	bct.displayAccountInstance(t, instID, args)
-
+	// Get the proof from byzcoin
+	reply, err = bct.cl.GetProof(instID.Slice())
+	require.Nil(t, err)
+	// Make sure the proof is a matching proof and not a proof of absence.
+	pr = reply.Proof
+	require.True(t, pr.InclusionProof.Match(instID.Slice()))
+	_, err = bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
+	require.Nil(t, err)
 
 	//DEPLOY
 	//Getting smartcontract abi and bytecode
-	rawAbi, bytecode := getSmartContract("LoanContract")
+	rawAbi, bytecode := getSmartContract("ERC20Token")
 
 	//Getting transaction parameters
 	gasLimit, gasPrice := transactionGasParameters()
 
+	deployTx := types.NewContractCreation(nonceA,  big.NewInt(0), gasLimit, gasPrice, common.Hex2Bytes(bytecode))
+	signedTxBuffer, err := signAndMarshalTx(privateA, deployTx)
+	require.Nil(t, err)
+	nonceA++
+	args = byzcoin.Arguments{
+		{
+			Name:  "tx",
+			Value: signedTxBuffer,
+		},
+	}
+	bct.transactionInstance(t, instID, args)
+	// Get the proof from byzcoin
+	reply, err = bct.cl.GetProof(instID.Slice())
+	require.Nil(t, err)
+	// Make sure the proof is a matching proof and not a proof of absence.
+	pr = reply.Proof
+	require.True(t, pr.InclusionProof.Match(instID.Slice()))
+
+	_, err = bct.cl.WaitProof(instID, bct.gMsg.BlockInterval, nil)
+	require.Nil(t, err)
+	erc20Address := crypto.CreateAddress(common.HexToAddress(addressA), deployTx.Nonce()).Hex()
+	log.LLvl1("ERC20 deployed @", erc20Address)
+
+
+
+	//Now lets gets the LoanContract abi & bytecode
+	lcABI, lcBIN := getSmartContract("LoanContract")
 	//constructor (uint256 _wantedAmount, uint256 _interest, uint256 _tokenAmount, string _tokenName, ERC20Token _tokenContractAddress, uint256 _length) public {
-
-
 	//CONSTRUCTOR
-	//Once deployed we will now send the constructor arguments
-	//constructor (uint256 _wantedAmount, uint256 _interest, uint256 _tokenAmount, string _tokenName, ERC20Token _tokenContractAddress, uint256 _length) public {
-	tokenContractAddress := "0xdac17f958d2ee523a2206206994597c13d831ec7"
-	constructorData, err := abiMethodPack(rawAbi, "", big.NewInt(3), big.NewInt(1), big.NewInt(10000), "USDT", common.HexToAddress(tokenContractAddress), big.NewInt(10))
+	constructorData, err := abiMethodPack(lcABI, "", big.NewInt(3), big.NewInt(1), big.NewInt(10000), "", common.HexToAddress(erc20Address), big.NewInt(10))
 	require.Nil(t, err)
 	s := []string{}
-	s = append(s, bytecode)
+	s = append(s, lcBIN)
 	encodedArgs := common.Bytes2Hex(constructorData)
 	s = append(s, encodedArgs)
 	data := strings.Join(s, "")
 
 	//Creating deploying transaction
-	deployTx := types.NewContractCreation(0,  big.NewInt(0), gasLimit, gasPrice, common.Hex2Bytes(data))
-
+	deployTx = types.NewContractCreation(nonceA,  big.NewInt(0), gasLimit, gasPrice, common.Hex2Bytes(data))
 
 	//Signing transaction with private key corresponding to addressA
-	privateA := "a33fca62081a2665454fe844a8afbe8e2e02fb66af558e695a79d058f9042f0d"
-	signedTxBuffer, err := signAndMarshalTx(privateA, deployTx)
+	signedTxBuffer, err = signAndMarshalTx(privateA, deployTx)
+	nonceA++
 	require.Nil(t, err)
 	args = byzcoin.Arguments{
 		{
@@ -397,15 +446,14 @@ func TestInvoke_LoanContract(t *testing.T){
 			Value: signedTxBuffer,
 		},
 	}
-
 	bct.transactionInstance(t, instID, args)
 	contractAddress := crypto.CreateAddress(common.HexToAddress(addressA), deployTx.Nonce())
 	log.LLvl1("contract loan deployed")
 
 	//CHECK TOKENS
-	checkTokenData, err := abiMethodPack(rawAbi, "checkTokens")
+	checkTokenData, err := abiMethodPack(lcABI, "checkTokens")
 	require.Nil(t,err)
-	checkTokenTx := types.NewTransaction(1, contractAddress, big.NewInt(0), gasLimit, gasPrice, checkTokenData)
+	checkTokenTx := types.NewTransaction(nonceA, contractAddress, big.NewInt(0), gasLimit, gasPrice, checkTokenData)
 	txBuffer, err := signAndMarshalTx(privateA, checkTokenTx)
 	require.Nil(t, err)
 	args = byzcoin.Arguments{
@@ -415,8 +463,9 @@ func TestInvoke_LoanContract(t *testing.T){
 
 		},
 	}
+	log.LLvl1("check tokens good")
 	bct.transactionInstance(t,instID, args)
-
+	log.LLvl1("check tokens good")
 
 	//LEND
 	addressB := "0x2887A24130cACFD8f71C479d9f9Da5b9C6425CE8"

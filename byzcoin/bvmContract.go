@@ -201,10 +201,6 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		return
 
 	}
-	/*
-	for i, sc := range sc{
-		log.Printf("state-change %d is %x", i, sha256.Sum256(sc.Value))
-	}*/
 	return
 }
 

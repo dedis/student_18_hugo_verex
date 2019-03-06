@@ -3,13 +3,10 @@ package byzcoin
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"go.dedis.ch/onet/v3/log"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pborman/uuid"
-	"math/big"
-
+	"go.dedis.ch/onet/v3/log"
 )
 
 //Key creation from Ethereum library
@@ -22,28 +19,17 @@ type Key struct {
 	PrivateKey *ecdsa.PrivateKey
 }
 
-func GenerateKeys() (address common.Address, privateKey *ecdsa.PrivateKey) {
+func GenerateKeys() (address string, privateKey string) {
 	private, err := crypto.GenerateKey()
 	if err != nil {
 		log.Fatal(err)
-
 	}
-	//key := NewKeyFromECDSA(private)
-	address = crypto.PubkeyToAddress(private.PublicKey)
-	//address = key.Address
-	//privateKey = key.PrivateKey
-
+	addressB := crypto.PubkeyToAddress(private.PublicKey)
+	address = addressB.Hex()
 	log.Lvlf2("Public key : %x ",  elliptic.Marshal(crypto.S256(), private.PublicKey.X, private.PublicKey.Y))
-	log.Lvl2("Address generated : ", address.Hex())
-	privateKey = private
+	log.Lvl2("Address generated : ", address)
+	privateKey = common.Bytes2Hex(crypto.FromECDSA(private))
 	return
-}
-
-//CreditAccount creates an account and load it with ether
-func CreditAccount(db *state.StateDB, key common.Address, value int64) common.Address {
-	db.SetBalance(key, big.NewInt(1e9*value))
-	log.LLvl1("the balance of account ",key.Hex() ," is ", db.GetBalance(key))
-	return key
 }
 
 //NewKeyFromECDSA :
