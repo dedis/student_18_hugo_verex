@@ -87,9 +87,9 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		}
 		ret := db.GetBalance(address)
 		if ret == big.NewInt(0) {
-			log.LLvl1(address.Hex(), "balance empty")
+			log.LLvl1(address.Hex(), "balance", "0")
 		}
-		log.LLvl1("check:", address.Hex(), "balance", ret.Uint64(), "wei" )
+		log.LLvl1(address.Hex(), "balance", ret.Uint64(), "wei")
 		return nil, nil, nil
 
 	case "credit":
@@ -152,6 +152,8 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		if err != nil {
 			return nil, nil, err
 		}
+		//log.LLvl1("nonce", ethTx.Nonce(), "hash", ethTx.Hash().Hex(), "check:", ethTx.CheckNonce(), "value", ethTx.Value().Uint64())
+
 		//Sends transaction
 		transactionReceipt, err := sendTx(&ethTx, db)
 		if err != nil {
@@ -159,10 +161,11 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 			return nil, nil, err
 		}
 
+
 		if transactionReceipt.ContractAddress.Hex() != nilAddress.Hex() {
 			log.LLvl1("contract deployed at:", transactionReceipt.ContractAddress.Hex(), "tx status:", transactionReceipt.Status, "gas used:", transactionReceipt.GasUsed, "tx receipt:", transactionReceipt.TxHash.Hex())
 		} else {
-			log.LLvl1("tx status:", transactionReceipt.Status, "gas used:", transactionReceipt.GasUsed, "tx receipt:", transactionReceipt.TxHash.Hex())
+			log.LLvl1( "transaction to", ethTx.To().Hex(),"tx status:", transactionReceipt.Status, "gas used:", transactionReceipt.GasUsed, "tx receipt:", transactionReceipt.TxHash.Hex())
 		}
 
 		//Commits the general stateDb
@@ -228,7 +231,6 @@ func sendTx(tx *types.Transaction, db *state.StateDB) (*types.Receipt, error){
 		ParentHash: common.Hash{0},
 		Time: big.NewInt(0),
 	}
-
 	//Applies transaction to the general state
 	receipt, usedGas, err := core.ApplyTransaction(chainconfig, bc, &nilAddress, gp, db, header, tx, ug, config)
 	if err !=nil {
