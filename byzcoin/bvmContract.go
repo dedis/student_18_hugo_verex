@@ -104,7 +104,7 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		}
 
 		//By default credit, credits 5*1e18 wei. To change this, add a new parameter to the byzcoin transaction with the desired value
-		db.SetBalance(address, big.NewInt(1e18*5))
+		db.AddBalance(address, big.NewInt(1e18*5))
 		log.Lvl1("default balance set, 5 eth")
 
 		//Commits the general stateDb
@@ -152,7 +152,6 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		if err != nil {
 			return nil, nil, err
 		}
-		//log.LLvl1("nonce", ethTx.Nonce(), "hash", ethTx.Hash().Hex(), "check:", ethTx.CheckNonce(), "value", ethTx.Value().Uint64())
 
 		//Sends transaction
 		transactionReceipt, err := sendTx(&ethTx, db)
@@ -161,11 +160,10 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 			return nil, nil, err
 		}
 
-
 		if transactionReceipt.ContractAddress.Hex() != nilAddress.Hex() {
 			log.LLvl1("contract deployed at:", transactionReceipt.ContractAddress.Hex(), "tx status:", transactionReceipt.Status, "gas used:", transactionReceipt.GasUsed, "tx receipt:", transactionReceipt.TxHash.Hex())
 		} else {
-			log.LLvl1( "transaction to", ethTx.To().Hex(),"tx status:", transactionReceipt.Status, "gas used:", transactionReceipt.GasUsed, "tx receipt:", transactionReceipt.TxHash.Hex())
+			log.LLvl1( "transaction to", ethTx.To().Hex(),"from","tx status:", transactionReceipt.Status, "gas used:", transactionReceipt.GasUsed, "tx receipt:", transactionReceipt.TxHash.Hex())
 		}
 
 		//Commits the general stateDb
@@ -173,6 +171,7 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		if err != nil {
 			return nil, nil, err
 		}
+		//log.LLvl1(db.GetBalance())
 
 		//Commits the low level trieDB
 		err = db.Database().TrieDB().Commit(es.RootHash, true)
@@ -185,7 +184,6 @@ func (c *contractBvm) Invoke(rst byzcoin.ReadOnlyStateTrie, inst byzcoin.Instruc
 		if err != nil {
 			return nil, nil, err
 		}
-		//log.Printf("dbBuf is: %x", sha256.Sum256(es.DbBuf))
 
 		//Encodes the Ethereum structure
 		esBuf, err := protobuf.Encode(&es)
@@ -237,6 +235,9 @@ func sendTx(tx *types.Transaction, db *state.StateDB) (*types.Receipt, error){
 		log.Error()
 		return nil, err
 	}
+	//logs := db.GetLogs(receipt.TxHash)
+	//log.LLvl1("the log we are looking for", db.GetLogs(common.HexToHash("0x47386f9020e5b01eccee6f293ab2b0dc47479f0793e980a4e49bd0c6473e30b1")))
+	//log.LLvl1(logs)
 	return receipt, nil
 }
 
